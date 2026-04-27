@@ -24,7 +24,7 @@ var DEFAULT_CONFIG = {
   models: [
     { providerID: "openrouter", modelID: "anthropic/claude-opus-4.7", label: "opus" },
     { providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt5" },
-    { providerID: "openrouter", modelID: "google/gemini-3-pro", label: "gemini" }
+    { providerID: "openrouter", modelID: "google/gemini-3.1-pro-preview", label: "gemini" }
   ],
   concurrency: 3,
   timeoutMs: 12e4,
