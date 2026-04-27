@@ -42,7 +42,7 @@ Do not invoke for:
 2. Ask clarifying questions one at a time until the purpose, constraints, and success criteria are clear.
 3. Call `quorum_consult` with a prompt that includes the problem, constraints, success criteria, and the request to propose an approach.
 4. Read every returned response before synthesizing.
-5. Produce a synthesis with these sections: Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, Proposed design.
+5. Produce a synthesis with these sections: Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, Proposed design. After the proposed design, include a "Raw responses" section with one collapsible HTML `<details>` block per member so the user can inspect the original text when they want.
 6. Before presenting the proposed design, surface material open questions. Ask one question at a time. Prefer the opencode `question` tool when the choice set is discrete; use conversational prose only for genuinely open-ended questions.
 7. Present the synthesis section by section and get approval after each section.
 8. Write the approved design to the configured spec directory as `{specDir}/YYYY-MM-DD-{topic}.md`. This file is a local scratch reference for the implementation phase, not a committed artifact.
@@ -64,6 +64,27 @@ Do not invoke for:
 - **Open questions** — decisions the user needs to make, tradeoffs you cannot resolve alone, and assumptions that need confirmation.
 - **Proposed design** — your fused recommendation. It is not a vote count and not a paraphrase of one member.
 
+## Raw responses block
+
+After the synthesis sections, append a "Raw responses" section that reproduces each member's response inside a collapsible HTML block so the user can inspect the original text without cluttering the chat. Use this exact shape, one block per successful member, in the same order returned by `quorum_consult`:
+
+```markdown
+## Raw responses
+
+<details>
+<summary><strong>{label}</strong> — {providerID}/{modelID}</summary>
+
+{full response text}
+
+</details>
+```
+
+Notes:
+
+- Leave a blank line before and after the `<summary>` tag and before `</details>` so the markdown inside renders correctly.
+- For members that dropped (present in `droppedModels`), use the same block shape with the summary line `<summary><strong>{label}</strong> — dropped: {error}</summary>` and an empty body.
+- Do not truncate the response text here. The tool already caps it via `maxTokens`.
+
 ## Failure modes
 
 - Fewer than two models respond: stop the quorum path, tell the user, and offer to retry or proceed single-model.
@@ -82,3 +103,4 @@ Do not invoke for:
 - Do not commit specs, plans, or raw synthesis. They are scratch artifacts. Commit only the high-level doc updates that capture the outcome.
 - Do not create new top-level documentation files when an existing one (such as `AGENTS.md`) is the right place for the outcome.
 - Do not copy the deliberation trail into committed docs. Capture decisions, not the discussion that produced them.
+- Do not paraphrase, truncate, or summarize member text inside the "Raw responses" blocks. Paste each response verbatim.
