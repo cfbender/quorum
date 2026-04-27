@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/cfbender/quorum/main/schema.json",
+  "title": "Quorum configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["models", "concurrency", "timeoutMs", "maxTokens", "reasoningEffort", "triggerMode", "specDir"],
+  "properties": {
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["providerID", "modelID", "label"],
+        "properties": {
+          "providerID": { "type": "string", "minLength": 1 },
+          "modelID": { "type": "string", "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "concurrency": { "type": "integer", "minimum": 1 },
+    "timeoutMs": { "type": "integer", "minimum": 1 },
+    "maxTokens": { "type": "integer", "minimum": 1 },
+    "reasoningEffort": { "enum": ["low", "medium", "high", "xhigh"] },
+    "triggerMode": { "enum": ["auto", "manual", "off"] },
+    "specDir": { "type": "string", "minLength": 1 }
+  }
+}
