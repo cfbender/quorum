@@ -38,18 +38,21 @@ Do not invoke for:
 
 ## Workflow
 
-1. Explore project context: files, recent commits, existing patterns.
+1. Explore project context: files, recent commits, existing patterns, and which high-level docs already exist (for example `AGENTS.md`, `ARCHITECTURE.md`, `docs/architecture/*`, `README.md`).
 2. Ask clarifying questions one at a time until the purpose, constraints, and success criteria are clear.
 3. Call `quorum_consult` with a prompt that includes the problem, constraints, success criteria, and the request to propose an approach.
 4. Read every returned response before synthesizing.
 5. Produce a synthesis with these sections: Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, Proposed design.
 6. Before presenting the proposed design, surface material open questions. Ask one question at a time. Prefer the opencode `question` tool when the choice set is discrete; use conversational prose only for genuinely open-ended questions.
 7. Present the synthesis section by section and get approval after each section.
-8. Write the approved design to the configured spec directory as `YYYY-MM-DD-{topic}.md`.
-9. Commit the spec file only.
-10. Review the spec for unfinished markers, internal contradictions, scope creep, and ambiguous requirements.
-11. Ask the user to review the written spec.
-12. Begin implementation only after the user approves the written spec.
+8. Write the approved design to the configured spec directory as `{specDir}/YYYY-MM-DD-{topic}.md`. This file is a local scratch reference for the implementation phase, not a committed artifact.
+9. Ensure the spec directory is gitignored. If the project's `.gitignore` does not already cover `{specDir}`, append an entry for it and stage the `.gitignore` change. Do not commit the spec file itself.
+10. Identify the high-level docs that should capture the outcome of this design. Prefer, in order: `AGENTS.md`, any existing architecture docs (`ARCHITECTURE.md`, `docs/architecture/*`), and `README.md` when the change affects install or usage. Pick based on what already exists in the repo; do not invent new top-level doc files unless the user asks for one.
+11. Update those high-level docs to reflect the outcome of the design — the "what" and the architectural "why", not the deliberation trail. Do not paste the synthesis sections verbatim. Do not list rejected alternatives. Capture only the decisions that future contributors need to know.
+12. Self-review the doc edits for unfinished markers, internal contradictions, scope creep, and ambiguous requirements.
+13. Ask the user to review the doc changes.
+14. Once the user approves, commit the high-level doc changes (and the `.gitignore` update if one was made) in a single focused commit. Do not commit the spec file. Do not commit the raw synthesis.
+15. Begin implementation only after the doc commit lands.
 
 ## Synthesis sections
 
@@ -76,3 +79,6 @@ Do not invoke for:
 - Do not skip consultation because the task looks easy.
 - Do not bury material open questions inside the proposed design.
 - Do not ask discrete-choice questions as plain prose when the opencode `question` tool is available.
+- Do not commit specs, plans, or raw synthesis. They are scratch artifacts. Commit only the high-level doc updates that capture the outcome.
+- Do not create new top-level documentation files when an existing one (such as `AGENTS.md`) is the right place for the outcome.
+- Do not copy the deliberation trail into committed docs. Capture decisions, not the discussion that produced them.

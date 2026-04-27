@@ -56,6 +56,6 @@ The compiled plugin is written to `.opencode/plugins/quorum.js` and is checked i
 4. Confirm labeled model responses are returned.
 5. Confirm the synthesis includes Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, and Proposed design.
 6. Confirm discrete open questions are asked with the opencode `question` tool.
-7. Approve the design and confirm the spec is written under `docs/quorum/specs/`.
+7. Approve the design and confirm the spec is written under `{specDir}` as a local scratch file and is not tracked by git. Confirm the orchestrator instead commits the relevant high-level doc updates (for example `AGENTS.md`).
 8. Set `triggerMode` to `manual`, start a new session, and confirm the bootstrap is absent.
 9. Configure one nonexistent model and confirm the failed model appears in `droppedModels` while the others still return.
