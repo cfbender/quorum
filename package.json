@@ -1,0 +1,27 @@
+{
+  "name": "quorum",
+  "version": "0.1.0",
+  "type": "module",
+  "main": ".opencode/plugins/quorum.js",
+  "files": [
+    ".opencode/plugins/",
+    "skills/",
+    "schema.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "esbuild src/plugin.ts --bundle --platform=node --format=esm --target=node20 --outfile=.opencode/plugins/quorum.js --external:@opencode-ai/plugin --external:@opencode-ai/plugin/tool",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.2.27"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}
