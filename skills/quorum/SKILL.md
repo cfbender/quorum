@@ -1,11 +1,11 @@
 ---
 name: quorum
-description: Use before any creative or planning work — new features, components, behavior changes, architectural decisions, or any task where "how should this work?" is not yet answered. Dispatches the planning prompt to multiple configured quorum member agents in parallel, synthesizes their perspectives, surfaces open questions, and produces a design the user approves before implementation begins.
+description: Use for planning-class requests such as new features, behavior changes, or architecture/design decisions. Dispatches the planning prompt to configured quorum member agents in parallel, synthesizes their perspectives, surfaces open questions, and requires explicit design approval before implementation.
 ---
 
 # Skill: quorum
 
-Use this skill before any creative or planning work. This includes new features, components, behavior changes, architectural decisions, or any task where the user has described what they want but not how it should work.
+Use this skill for planning-class requests: new features, behavior changes, and architecture or design decisions.
 
 ## Hard gate
 
@@ -23,18 +23,19 @@ This applies to every planning task, regardless of perceived simplicity.
 
 Invoke for:
 
-- New features or components.
-- Behavior changes to existing features.
-- Architectural or design decisions.
-- Any task where "how should this work?" is not yet answered.
+- New feature work.
+- Behavior changes to existing functionality.
+- Architecture or design decisions.
 
 Do not invoke for:
 
-- Pure bug fixes with an obvious cause.
-- Typo fixes.
-- Dependency bumps.
-- Running existing commands.
-- Answering factual questions.
+- Obvious bug fixes.
+- Typo or wording-only edits.
+- Dependency-only bumps.
+- Requests to run an existing command.
+- Factual questions.
+
+If you are unsure whether a request is planning-class, treat it as planning and invoke this skill.
 
 ## Workflow
 
