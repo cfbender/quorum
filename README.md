@@ -85,3 +85,11 @@ npm run verify
 ```
 
 The compiled plugin is written to `.opencode/plugins/quorum.js` and is checked into git so git-based installs do not need a build step.
+
+## Acknowledgments
+
+Quorum draws inspiration from two prior works on multi-model orchestration:
+
+- [Superpowers](https://github.com/obra/superpowers) — skill-based agent augmentation patterns.
+- [OpenRouter Fusion](https://openrouter.ai/labs/fusion) — parallel multi-model synthesis.
+
