@@ -1,3 +1,7 @@
+// src/plugin.ts
+import { fileURLToPath } from "node:url";
+import * as path2 from "node:path";
+
 // src/prompts.ts
 var DEEP_MEMBER_SYSTEM_PROMPT = `You are a deep-review member of a quorum of planning consultants. You are invoked only on explicit request for second-order analysis, double-checking, or high-stakes architecture review.
 
@@ -191,16 +195,26 @@ function loadConfig(configDir) {
 }
 
 // src/plugin.ts
-function createHooks(config) {
-  if (config.triggerMode === "off") return {};
-  const incomingAgents = buildAgentConfigs(config);
-  const bootstrap = renderBootstrap(config);
+var __dirname = path2.dirname(fileURLToPath(import.meta.url));
+var SKILLS_DIR = path2.resolve(__dirname, "../../skills");
+function createHooks(config, skillsDir = SKILLS_DIR) {
+  const registerAgents = config.triggerMode !== "off";
+  const incomingAgents = registerAgents ? buildAgentConfigs(config) : {};
+  const bootstrap = registerAgents ? renderBootstrap(config) : null;
   return {
-    config: async (input) => {
-      input.agent = input.agent ?? {};
-      for (const [name, def] of Object.entries(incomingAgents)) {
-        if (input.agent[name] !== void 0) continue;
-        input.agent[name] = def;
+    config: async (rawInput) => {
+      const input = rawInput;
+      input.skills = input.skills ?? {};
+      input.skills.paths = input.skills.paths ?? [];
+      if (!input.skills.paths.includes(skillsDir)) {
+        input.skills.paths.push(skillsDir);
+      }
+      if (registerAgents) {
+        input.agent = input.agent ?? {};
+        for (const [name, def] of Object.entries(incomingAgents)) {
+          if (input.agent[name] !== void 0) continue;
+          input.agent[name] = def;
+        }
       }
     },
     ...bootstrap !== null ? {
