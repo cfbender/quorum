@@ -8,7 +8,21 @@ export function renderBootstrap(config: QuorumConfig): string | null {
   return `<quorum-bootstrap>
 You have quorum planning members available as subagents: ${memberList}.
 
-Before creative or planning work, load the quorum skill and dispatch parallel task calls to each member with the same planning prompt.
+Use quorum first for planning-class requests:
+- new feature work.
+- behavior changes to existing functionality.
+- architecture or design decisions.
+
+Do not require quorum first for:
+- obvious bug fixes.
+- Typo or wording-only edits.
+- Dependency-only bumps.
+- Requests to run an existing command.
+- Factual questions.
+
+If you are unsure whether a request is planning-class, treat it as planning and run quorum.
+
+For planning-class requests, load the quorum skill and dispatch parallel task calls to each member with the same planning prompt.
 
 Use member outputs to synthesize: Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, and Proposed design.
 
