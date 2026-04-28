@@ -16,6 +16,9 @@ describe("plugin hooks", () => {
     await hooks["experimental.chat.system.transform"]?.({ model: { id: "unused" } } as never, output as never)
     expect(output.system.join("\n")).toContain("quorum-sonnet")
     expect(output.system.join("\n")).toContain("task")
+    expect(output.system.join("\n")).toContain("new feature work")
+    expect(output.system.join("\n")).toContain("obvious bug fixes")
+    expect(output.system.join("\n")).toContain("If you are unsure whether a request is planning-class")
   })
 
   it("registers only config hook in manual mode", () => {

@@ -44,6 +44,8 @@ At least two members are required.
 - `manual`: registers all members as subagents but does **not** inject the bootstrap. The orchestrator can still dispatch member tasks on demand, but does not do so automatically.
 - `off`: disables all plugin hooks. No members are registered and no bootstrap is injected.
 
+By default, quorum-first behavior applies to planning-class requests: new feature work, behavior changes, and architecture or design decisions. It is not required for obvious bug fixes, typo/wording-only edits, dependency-only bumps, running an existing command, or factual questions. If uncertain, treat the request as planning-class and run quorum.
+
 ## Development
 
 ```bash
