@@ -1,6 +1,6 @@
 {
   "name": "quorum",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": ".opencode/plugins/quorum.js",
   "files": [

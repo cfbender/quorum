@@ -4,26 +4,23 @@
   "title": "Quorum configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": ["models", "concurrency", "timeoutMs", "maxTokens", "reasoningEffort", "triggerMode", "specDir"],
+  "required": ["members", "triggerMode", "specDir"],
   "properties": {
-    "models": {
+    "members": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 2,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["providerID", "modelID", "label"],
+        "required": ["name", "providerID", "modelID", "label"],
         "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
           "providerID": { "type": "string", "minLength": 1 },
           "modelID": { "type": "string", "minLength": 1 },
           "label": { "type": "string", "minLength": 1 }
         }
       }
     },
-    "concurrency": { "type": "integer", "minimum": 1 },
-    "timeoutMs": { "type": "integer", "minimum": 1 },
-    "maxTokens": { "type": "integer", "minimum": 1 },
-    "reasoningEffort": { "enum": ["low", "medium", "high", "xhigh"] },
     "triggerMode": { "enum": ["auto", "manual", "off"] },
     "specDir": { "type": "string", "minLength": 1 }
   }
