@@ -72,6 +72,39 @@ If you are unsure whether a request is planning-class, treat it as planning and 
 - Members disagree sharply on fundamentals: present the options and ask the user to choose.
 - A member task call fails entirely: tell the user, offer retry or single-model fallback.
 
+## Deep review (opt-in)
+
+When `deepMembers` are configured, a second pool of heavier models is available for explicit deep-analysis requests. Deep members are never invoked by default.
+
+### Triggers
+
+Invoke deep members only when the user explicitly requests:
+- Deeper analysis or second-order thinking.
+- A double-check of a prior synthesis.
+- A follow-up review after seeing the regular synthesis.
+
+### Dispatch modes
+
+- **Replace (upfront):** user asks for deep analysis before any regular synthesis → dispatch deep members instead of regular members. Use the same planning prompt.
+- **Follow-up (escalation):** regular synthesis already produced and user asks for double-check → dispatch deep members with the prior synthesis and the original request as context so they can critique it.
+
+### Context passing
+
+For follow-up escalation, include in each deep member task call:
+1. The original planning question and constraints.
+2. The full regular synthesis produced in the prior step.
+3. An explicit instruction to critique the synthesis: identify what it got right, what it missed, and where it was overconfident.
+
+### Output
+
+Render deep member output as a distinct **Deep review** section after the regular synthesis. Do not merge deep output into the regular synthesis. Present Agreement, Key differences, and any new signal surfaced by deep members.
+
+### Hard rules
+
+- Never invoke deep members without explicit user approval.
+- When regular synthesis is contested or uncertain, you may *offer* deep follow-up — but do not invoke it automatically.
+- Deep members are not a fallback for a failed regular quorum. If the regular quorum fails, tell the user and offer retry or single-model fallback.
+
 ## Anti-patterns
 
 - Do not average responses into a bland summary.
@@ -83,3 +116,4 @@ If you are unsure whether a request is planning-class, treat it as planning and 
 - Do not commit specs, plans, or raw synthesis. They are scratch artifacts. Commit only the high-level doc updates that capture the outcome.
 - Do not create new top-level documentation files when an existing one (such as `AGENTS.md`) is the right place for the outcome.
 - Do not copy the deliberation trail into committed docs. Capture decisions, not the discussion that produced them.
+- Do not dispatch open or clarification questions to subagents via `task` calls. Use the opencode `question` tool or ask the user directly in the main thread.

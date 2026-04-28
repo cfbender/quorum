@@ -35,8 +35,37 @@ Each entry in `members` requires:
 - `providerID` — opencode provider (e.g. `openrouter`).
 - `modelID` — model path understood by the provider.
 - `label` — short display name used in synthesis output.
+- `reasoningEffort` *(optional)* — overrides the pool default. One of `"low"`, `"medium"`, `"high"`, `"xhigh"`. Default for regular members is `"high"`.
 
 At least two members are required.
+
+### Deep members (opt-in)
+
+`deepMembers` is an optional second pool for heavier, more expensive analysis. Deep members are **never invoked by default** — they run only on explicit user request ("go deeper", "double-check this", follow-up review).
+
+```json
+{
+  "members": [
+    { "name": "quorum-sonnet", "providerID": "openrouter", "modelID": "anthropic/claude-sonnet-4.6", "label": "sonnet" },
+    { "name": "quorum-gpt5", "providerID": "openrouter", "modelID": "openai/gpt-5.4", "label": "gpt5" },
+    { "name": "quorum-gemini", "providerID": "openrouter", "modelID": "google/gemini-3.1-pro-preview", "label": "gemini" }
+  ],
+  "deepMembers": [
+    { "name": "quorum-deep-sonnet", "providerID": "openrouter", "modelID": "anthropic/claude-opus-4-5", "label": "opus", "reasoningEffort": "xhigh" },
+    { "name": "quorum-deep-o3", "providerID": "openrouter", "modelID": "openai/o3", "label": "o3" }
+  ],
+  "triggerMode": "auto",
+  "specDir": "docs/quorum/specs"
+}
+```
+
+Rules for `deepMembers`:
+
+- At least one entry required (if the field is present).
+- Same per-entry fields as `members` (same name pattern, same required fields).
+- `name` values must be unique within `deepMembers` and must not collide with any name in `members`.
+- `reasoningEffort` default for deep members is `"xhigh"` (overridden per-entry if set).
+- If `deepMembers` is malformed (empty after filtering, duplicate names, name collision with `members`), the field is silently dropped — the rest of the config is unaffected.
 
 ## Trigger modes
 
