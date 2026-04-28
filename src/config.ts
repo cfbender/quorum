@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import type { QuorumConfig, QuorumMember, TriggerMode } from "./types.js"
+import type { QuorumConfig, QuorumMember, ReasoningEffort, TriggerMode } from "./types.js"
 
 const MEMBER_NAME_RE = /^[a-z][a-z0-9-]*$/
 
@@ -27,6 +27,10 @@ function parseTriggerMode(value: unknown): TriggerMode | undefined {
   return value === "auto" || value === "manual" || value === "off" ? value : undefined
 }
 
+function parseReasoningEffort(value: unknown): ReasoningEffort | undefined {
+  return value === "low" || value === "medium" || value === "high" || value === "xhigh" ? value : undefined
+}
+
 function parseMember(value: unknown): QuorumMember | undefined {
   if (!isRecord(value)) return undefined
   const name = nonEmptyString(value.name)
@@ -35,7 +39,26 @@ function parseMember(value: unknown): QuorumMember | undefined {
   const label = nonEmptyString(value.label)
   if (!name || !providerID || !modelID || !label) return undefined
   if (!MEMBER_NAME_RE.test(name)) return undefined
-  return { name, providerID, modelID, label }
+  const member: QuorumMember = { name, providerID, modelID, label }
+  if (value.reasoningEffort !== undefined) {
+    const effort = parseReasoningEffort(value.reasoningEffort)
+    if (effort !== undefined) member.reasoningEffort = effort
+  }
+  return member
+}
+
+function parseDeepMembers(value: unknown, memberNames: Set<string>): QuorumMember[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  if (value.length === 0) return undefined
+  const deep = value.map(parseMember).filter((m): m is QuorumMember => m !== undefined)
+  if (deep.length === 0) return undefined
+  const deepNames = new Set<string>()
+  for (const m of deep) {
+    if (deepNames.has(m.name)) return undefined
+    if (memberNames.has(m.name)) return undefined
+    deepNames.add(m.name)
+  }
+  return deep
 }
 
 function parseMembers(value: unknown): QuorumMember[] | undefined {
@@ -52,11 +75,16 @@ function parseMembers(value: unknown): QuorumMember[] | undefined {
 
 export function parseConfig(value: unknown): QuorumConfig {
   if (!isRecord(value)) return DEFAULT_CONFIG
-  return {
-    members: parseMembers(value.members) ?? DEFAULT_CONFIG.members,
+  const members = parseMembers(value.members) ?? DEFAULT_CONFIG.members
+  const memberNames = new Set(members.map((m) => m.name))
+  const deepMembers = parseDeepMembers(value.deepMembers, memberNames)
+  const config: QuorumConfig = {
+    members,
     triggerMode: parseTriggerMode(value.triggerMode) ?? DEFAULT_CONFIG.triggerMode,
     specDir: nonEmptyString(value.specDir) ?? DEFAULT_CONFIG.specDir,
   }
+  if (deepMembers !== undefined) config.deepMembers = deepMembers
+  return config
 }
 
 export function resolveConfigPath(configDir = process.env.OPENCODE_CONFIG_DIR ?? path.join(os.homedir(), ".config", "opencode")): string {

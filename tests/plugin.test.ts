@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { DEFAULT_CONFIG } from "../src/config.js"
 import { createHooks } from "../src/plugin.js"
+import type { QuorumConfig } from "../src/types.js"
 
 describe("plugin hooks", () => {
   it("registers config hook and bootstrap in auto mode", async () => {
@@ -30,5 +31,27 @@ describe("plugin hooks", () => {
   it("registers no hooks in off mode", () => {
     const hooks = createHooks({ ...DEFAULT_CONFIG, triggerMode: "off" })
     expect(hooks).toEqual({})
+  })
+
+  it("deep agents appear in input.agent when deepMembers configured", async () => {
+    const config: QuorumConfig = {
+      ...DEFAULT_CONFIG,
+      deepMembers: [
+        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
+      ],
+    }
+    const hooks = createHooks(config)
+    const cfg = { agent: {} as Record<string, unknown> }
+    await hooks.config?.(cfg as never)
+    expect(Object.keys(cfg.agent)).toContain("quorum-sonnet")
+    expect(Object.keys(cfg.agent)).toContain("quorum-deep-a")
+  })
+
+  it("hook shape unchanged for configs without deepMembers", async () => {
+    const hooks = createHooks(DEFAULT_CONFIG)
+    const cfg = { agent: {} as Record<string, unknown> }
+    await hooks.config?.(cfg as never)
+    expect(Object.keys(cfg.agent)).toHaveLength(3)
+    expect(Object.keys(cfg.agent)).toEqual(["quorum-sonnet", "quorum-gpt5", "quorum-gemini"])
   })
 })

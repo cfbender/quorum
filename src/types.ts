@@ -6,10 +6,12 @@ export type QuorumMember = {
   providerID: string
   modelID: string
   label: string
+  reasoningEffort?: ReasoningEffort
 }
 
 export type QuorumConfig = {
   members: QuorumMember[]
+  deepMembers?: QuorumMember[]
   triggerMode: TriggerMode
   specDir: string
 }
