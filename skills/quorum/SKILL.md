@@ -19,23 +19,19 @@ Do not write code, scaffold projects, run implementation commands, or invoke imp
 
 This applies to every planning task, regardless of perceived simplicity.
 
-## When to invoke
+## Trigger gate
 
-Invoke for:
+Run this check before dispatching any implementation subagent, asking the user clarifying questions, or writing code beyond a trivial edit. Answer each question:
 
-- New feature work.
-- Behavior changes to existing functionality.
-- Architecture or design decisions.
+1. Are there two or more meaningful design, product, or UX choices that the user has not already decided?
+2. Is prior art in this codebase ambiguous, absent, or not an obvious match for the approach?
+3. Will this ship user-facing behavior — UI, API surface, data model, auth, or persisted state?
 
-Do not invoke for:
+If any answer is yes, invoke this skill. The quorum's proposed design then becomes the basis for clarifying questions, not the reverse.
 
-- Obvious bug fixes.
-- Typo or wording-only edits.
-- Dependency-only bumps.
-- Requests to run an existing command.
-- Factual questions.
+If all three answers are no, this skill is not required. Typical skips: obvious bug fixes with a known root cause, typo or wording-only edits, dependency-only bumps, running an existing command, factual questions, or a small ticket with a clear blueprint from prior work and a mechanical implementation path.
 
-If you are unsure whether a request is planning-class, treat it as planning and invoke this skill.
+If you are unsure, treat the request as planning-class and invoke this skill.
 
 ## Workflow
 

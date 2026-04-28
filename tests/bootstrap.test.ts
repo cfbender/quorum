@@ -13,15 +13,17 @@ describe("bootstrap", () => {
     expect(text).toContain("task")
     expect(text).toContain("subagents")
     expect(text).not.toMatch(forbiddenCavemanPattern)
-    // moderate trigger categories
-    expect(text).toContain("new feature")
-    expect(text).toContain("behavior changes")
-    expect(text).toContain("architecture")
-    // non-trigger categories
+    // mechanical trigger gate
+    expect(text).toContain("Trigger gate")
+    expect(text).toContain("two or more meaningful design")
+    expect(text).toContain("prior art")
+    expect(text).toContain("user-facing behavior")
+    expect(text).toContain("If any answer is yes")
+    // non-trigger examples
     expect(text).toContain("obvious bug fixes")
-    expect(text).toContain("Dependency-only bumps")
+    expect(text).toContain("dependency-only bumps")
     // uncertainty fallback
-    expect(text).toContain("If you are unsure whether a request is planning")
+    expect(text).toContain("If you are unsure")
   })
 
   it("contains open-question anti-pattern rule in quorum-bootstrap block", () => {
