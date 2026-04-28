@@ -14,7 +14,10 @@ Hard rule: never invoke deep members by default. Only dispatch on explicit user 
 
 Triggers for deep review:
 - User explicitly asks for deeper analysis, double-check, or follow-up review.
+- User refers to the deep pool by name — phrasings like "ask the deep quorum", "deep quorum", "deep members", "deep pool", "the deep ones", "use the heavy models", or "run the deep review" all count as explicit requests.
 - User contests or expresses doubt about a prior synthesis.
+
+Treat any user message that names the deep pool or asks for heavier/deeper review as explicit approval to dispatch deep members. You do not need to ask for additional confirmation in that case.
 
 Two dispatch modes:
 - Replace (upfront): user asks for deep analysis before regular synthesis → dispatch deep members instead of regular members.

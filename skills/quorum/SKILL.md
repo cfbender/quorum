@@ -78,6 +78,7 @@ Invoke deep members only when the user explicitly requests:
 - Deeper analysis or second-order thinking.
 - A double-check of a prior synthesis.
 - A follow-up review after seeing the regular synthesis.
+- The deep pool by name. Phrasings like "ask the deep quorum", "deep quorum", "deep members", "deep pool", "the deep ones", "use the heavy models", or "run the deep review" all count as explicit requests. Treat any user message that names the deep pool or asks for heavier/deeper review as explicit approval to dispatch — no additional confirmation needed.
 
 ### Dispatch modes
 
