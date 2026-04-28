@@ -1,9 +1,9 @@
 import { tool } from "@opencode-ai/plugin/tool"
 import { runQuorum } from "./consult.js"
 import { isSubagentSession } from "./session.js"
-import type { OpencodeClientLike, QuorumConfig } from "./types.js"
+import type { LegacyQuorumConfig, OpencodeClientLike } from "./types.js"
 
-export function createQuorumTool(client: OpencodeClientLike, config: QuorumConfig) {
+export function createQuorumTool(client: OpencodeClientLike, config: LegacyQuorumConfig) {
   return tool({
     description: "Fan out a planning prompt to the configured quorum of models and return their responses for synthesis. Use when starting any creative or planning work before writing code.",
     args: {

@@ -1,6 +1,6 @@
 import { renderMemberPrompt, renderSynthesisPrompt } from "./prompts.js"
 import { extractTextParts, truncateApproxTokens } from "./text.js"
-import type { OpencodeClientLike, QuorumConfig, QuorumModel, QuorumPayload, QuorumResponse } from "./types.js"
+import type { LegacyQuorumConfig, OpencodeClientLike, QuorumModel, QuorumPayload, QuorumResponse } from "./types.js"
 
 type RunQuorumInput = {
   client: OpencodeClientLike
@@ -8,7 +8,7 @@ type RunQuorumInput = {
   topic: string
   prompt: string
   context?: string
-  config: QuorumConfig
+  config: LegacyQuorumConfig
   abortSignal: AbortSignal
 }
 

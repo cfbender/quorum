@@ -1,18 +1,16 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import type { QuorumConfig, QuorumModel, ReasoningEffort, TriggerMode } from "./types.js"
+import type { QuorumConfig, QuorumMember, TriggerMode } from "./types.js"
+
+const MEMBER_NAME_RE = /^[a-z][a-z0-9-]*$/
 
 export const DEFAULT_CONFIG: QuorumConfig = {
-  models: [
-    { providerID: "openrouter", modelID: "anthropic/claude-opus-4.7", label: "opus" },
-    { providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt5" },
-    { providerID: "openrouter", modelID: "google/gemini-3.1-pro-preview", label: "gemini" },
+  members: [
+    { name: "quorum-sonnet", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
+    { name: "quorum-gpt5", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt5" },
+    { name: "quorum-gemini", providerID: "openrouter", modelID: "google/gemini-3.1-pro-preview", label: "gemini" },
   ],
-  concurrency: 3,
-  timeoutMs: 120_000,
-  maxTokens: 4_000,
-  reasoningEffort: "high",
   triggerMode: "auto",
   specDir: "docs/quorum/specs",
 }
@@ -25,40 +23,37 @@ function nonEmptyString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined
 }
 
-function positiveInteger(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined
-}
-
 function parseTriggerMode(value: unknown): TriggerMode | undefined {
   return value === "auto" || value === "manual" || value === "off" ? value : undefined
 }
 
-function parseReasoningEffort(value: unknown): ReasoningEffort | undefined {
-  return value === "low" || value === "medium" || value === "high" || value === "xhigh" ? value : undefined
-}
-
-function parseModel(value: unknown): QuorumModel | undefined {
+function parseMember(value: unknown): QuorumMember | undefined {
   if (!isRecord(value)) return undefined
+  const name = nonEmptyString(value.name)
   const providerID = nonEmptyString(value.providerID)
   const modelID = nonEmptyString(value.modelID)
   const label = nonEmptyString(value.label)
-  if (!providerID || !modelID || !label) return undefined
-  return { providerID, modelID, label }
+  if (!name || !providerID || !modelID || !label) return undefined
+  if (!MEMBER_NAME_RE.test(name)) return undefined
+  return { name, providerID, modelID, label }
+}
+
+function parseMembers(value: unknown): QuorumMember[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const members = value.map(parseMember).filter((member): member is QuorumMember => member !== undefined)
+  if (members.length < 2) return undefined
+  const names = new Set<string>()
+  for (const member of members) {
+    if (names.has(member.name)) return undefined
+    names.add(member.name)
+  }
+  return members
 }
 
 export function parseConfig(value: unknown): QuorumConfig {
   if (!isRecord(value)) return DEFAULT_CONFIG
-
-  const models = Array.isArray(value.models)
-    ? value.models.map(parseModel).filter((model): model is QuorumModel => model !== undefined)
-    : DEFAULT_CONFIG.models
-
   return {
-    models: models.length > 0 ? models : DEFAULT_CONFIG.models,
-    concurrency: positiveInteger(value.concurrency) ?? DEFAULT_CONFIG.concurrency,
-    timeoutMs: positiveInteger(value.timeoutMs) ?? DEFAULT_CONFIG.timeoutMs,
-    maxTokens: positiveInteger(value.maxTokens) ?? DEFAULT_CONFIG.maxTokens,
-    reasoningEffort: parseReasoningEffort(value.reasoningEffort) ?? DEFAULT_CONFIG.reasoningEffort,
+    members: parseMembers(value.members) ?? DEFAULT_CONFIG.members,
     triggerMode: parseTriggerMode(value.triggerMode) ?? DEFAULT_CONFIG.triggerMode,
     specDir: nonEmptyString(value.specDir) ?? DEFAULT_CONFIG.specDir,
   }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { DEFAULT_CONFIG } from "../src/config.js"
 import { runQuorum } from "../src/consult.js"
-import type { OpencodeClientLike, PromptResponse, QuorumConfig, QuorumModel, TextPartInput } from "../src/types.js"
+import type { LegacyQuorumConfig, OpencodeClientLike, PromptResponse, QuorumModel, TextPartInput } from "../src/types.js"
 
 type PromptCall = {
   providerID: string
@@ -52,13 +52,26 @@ function makeClient(options: {
   }
 }
 
-function configWith(models: QuorumModel[], override: Partial<QuorumConfig> = {}): QuorumConfig {
-  return { ...DEFAULT_CONFIG, models, concurrency: models.length, timeoutMs: 100, ...override }
+const LEGACY_DEFAULT: LegacyQuorumConfig = {
+  ...DEFAULT_CONFIG,
+  models: [
+    { providerID: "openrouter", modelID: "anthropic/claude-opus-4.7", label: "opus" },
+    { providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt5" },
+    { providerID: "openrouter", modelID: "google/gemini-3.1-pro-preview", label: "gemini" },
+  ],
+  concurrency: 3,
+  timeoutMs: 120_000,
+  maxTokens: 4_000,
+  reasoningEffort: "high",
+}
+
+function configWith(models: QuorumModel[], override: Partial<LegacyQuorumConfig> = {}): LegacyQuorumConfig {
+  return { ...LEGACY_DEFAULT, models, concurrency: models.length, timeoutMs: 100, ...override }
 }
 
 describe("runQuorum", () => {
   it("fans out to each configured model and returns a synthesis prompt", async () => {
-    const models = DEFAULT_CONFIG.models.slice(0, 2)
+    const models = LEGACY_DEFAULT.models.slice(0, 2)
     const promptCalls: PromptCall[] = []
     const deleted: string[] = []
     const client = makeClient({
@@ -90,7 +103,7 @@ describe("runQuorum", () => {
   })
 
   it("records model errors without failing the whole quorum", async () => {
-    const models = DEFAULT_CONFIG.models.slice(0, 2)
+    const models = LEGACY_DEFAULT.models.slice(0, 2)
     const client = makeClient({
       models,
       responses: new Map([
@@ -117,7 +130,7 @@ describe("runQuorum", () => {
   })
 
   it("times out slow models", async () => {
-    const models = DEFAULT_CONFIG.models.slice(0, 2)
+    const models = LEGACY_DEFAULT.models.slice(0, 2)
     const client = makeClient({
       models,
       responses: new Map([
@@ -141,7 +154,7 @@ describe("runQuorum", () => {
   })
 
   it("locally truncates long responses", async () => {
-    const models = DEFAULT_CONFIG.models.slice(0, 2)
+    const models = LEGACY_DEFAULT.models.slice(0, 2)
     const longText = "x".repeat(100)
     const client = makeClient({
       models,
