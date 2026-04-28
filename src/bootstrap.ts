@@ -1,19 +1,17 @@
 import type { QuorumConfig } from "./types.js"
 
-const BOOTSTRAP = `<quorum-bootstrap>
-You have access to the \`quorum_consult\` tool, which fans a prompt out to multiple models and returns their responses for you to synthesize.
-
-**When to use it:** before any creative or planning work — new features, components, behavior changes, architectural decisions, or any task where "how should this work?" is not yet answered. Load the \`quorum\` skill for the full workflow.
-
-**Hard rule:** for planning work, you must consult the quorum, synthesize, present a design, surface material open questions, and receive explicit user approval before writing code or invoking implementation tools. This applies regardless of perceived simplicity.
-
-**Open questions:** if the answer would materially change the design, ask the user before presenting the proposed design. Prefer the opencode question tool for discrete choices such as multiple-choice, A/B, or yes/no decisions.
-
-**Not for:** pure bug fixes with obvious cause, typo fixes, dependency bumps, running existing commands, answering factual questions.
-
-When in doubt whether a task counts as planning: invoke the \`quorum\` skill and let it guide you.
-</quorum-bootstrap>`
-
 export function renderBootstrap(config: QuorumConfig): string | null {
-  return config.triggerMode === "auto" ? BOOTSTRAP : null
+  if (config.triggerMode !== "auto") return null
+
+  const memberList = config.members.map((member) => member.name).join(", ")
+
+  return `<quorum-bootstrap>
+You have quorum planning members available as subagents: ${memberList}.
+
+Before creative or planning work, load the quorum skill and dispatch parallel task calls to each member with the same planning prompt.
+
+Use member outputs to synthesize: Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, and Proposed design.
+
+Prefer opencode question tool for discrete open questions. Receive explicit design approval before implementation.
+</quorum-bootstrap>`
 }

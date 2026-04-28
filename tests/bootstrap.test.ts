@@ -9,9 +9,9 @@ describe("bootstrap", () => {
   it("renders the normal-English quorum bootstrap in auto mode", () => {
     const text = renderBootstrap(DEFAULT_CONFIG)
     expect(text).toContain("<quorum-bootstrap>")
-    expect(text).toContain("quorum_consult")
-    expect(text).toContain("Hard rule")
-    expect(text).toContain("Load the `quorum` skill")
+    expect(text).toContain("quorum-sonnet")
+    expect(text).toContain("task")
+    expect(text).toContain("subagents")
     expect(text).not.toMatch(forbiddenCavemanPattern)
   })
 
