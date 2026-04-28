@@ -1,5 +1,17 @@
 import type { QuorumResponse, ReasoningEffort } from "./types.js"
 
+export const MEMBER_SYSTEM_PROMPT = `You are one member of a quorum of planning consultants.
+
+Read the planning question carefully and propose a practical approach with rationale.
+
+Requirements:
+- Address architecture, components, data flow, and tradeoffs.
+- Surface assumptions and open questions that could change the design.
+- Keep the response focused and concrete.
+- Do not call tools.
+- Do not write files.
+- Do not claim consensus; provide your independent perspective.`
+
 export function renderMemberPrompt(input: {
   topic: string
   prompt: string
