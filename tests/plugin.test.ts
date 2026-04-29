@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest"
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
 import { DEFAULT_CONFIG } from "../src/config.js"
 import { createHooks } from "../src/plugin.js"
 import type { QuorumConfig } from "../src/types.js"
@@ -110,5 +113,96 @@ describe("plugin hooks", () => {
     await hooks.config?.(cfg as never)
     expect(Object.keys(cfg.agent)).toHaveLength(3)
     expect(Object.keys(cfg.agent)).toEqual(["quorum-sonnet", "quorum-gpt5", "quorum-gemini"])
+  })
+
+  // --- config-issues injection ---
+
+  it("config-issues block injected when issues present", async () => {
+    const issues = ["Invalid member entry at index 0: field 'providerID' must be a non-empty string", "Fewer than 2 valid members parsed (got 0); config falling back to defaults"]
+    const hooks = createHooks(DEFAULT_CONFIG, TEST_SKILLS_DIR, { issues })
+    const output = { system: [] as string[] }
+    await hooks["experimental.chat.system.transform"]?.({ model: { id: "unused" } } as never, output as never)
+    const text = output.system.join("\n")
+    expect(text).toContain("<quorum-config-issues>")
+    expect(text).toContain("- Invalid member entry at index 0: field 'providerID' must be a non-empty string")
+    expect(text).toContain("- Fewer than 2 valid members parsed")
+    expect(text).toContain("Tell the user so they can fix their config")
+  })
+
+  it("no config-issues block when issues is empty", async () => {
+    const hooks = createHooks(DEFAULT_CONFIG, TEST_SKILLS_DIR, { issues: [] })
+    const output = { system: [] as string[] }
+    await hooks["experimental.chat.system.transform"]?.({ model: { id: "unused" } } as never, output as never)
+    expect(output.system.join("\n")).not.toContain("<quorum-config-issues>")
+  })
+
+  // --- restart-required injection ---
+
+  it("restart-required block injected when mtime newer than boot", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "quorum-test-"))
+    const configPath = path.join(tmpDir, "quorum.json")
+    fs.writeFileSync(configPath, "{}")
+    const bootMtime = fs.statSync(configPath).mtimeMs
+
+    // Bump mtime by writing again after a small delay to ensure newer timestamp
+    // Use utimes to guarantee mtime is strictly newer
+    const futureMs = bootMtime + 2000
+    fs.utimesSync(configPath, new Date(futureMs), new Date(futureMs))
+
+    const hooks = createHooks(DEFAULT_CONFIG, TEST_SKILLS_DIR, { configPath, bootMtime })
+    const output = { system: [] as string[] }
+    await hooks["experimental.chat.system.transform"]?.({ model: { id: "unused" } } as never, output as never)
+    const text = output.system.join("\n")
+    expect(text).toContain("<quorum-restart-required>")
+    expect(text).toContain("quorum.json has been edited since opencode started")
+    expect(text).toContain("Restart opencode to apply changes")
+
+    fs.rmSync(tmpDir, { recursive: true })
+  })
+
+  it("restart-required block absent when file mtime unchanged", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "quorum-test-"))
+    const configPath = path.join(tmpDir, "quorum.json")
+    fs.writeFileSync(configPath, "{}")
+    const bootMtime = fs.statSync(configPath).mtimeMs
+
+    const hooks = createHooks(DEFAULT_CONFIG, TEST_SKILLS_DIR, { configPath, bootMtime })
+    const output = { system: [] as string[] }
+    await hooks["experimental.chat.system.transform"]?.({ model: { id: "unused" } } as never, output as never)
+    expect(output.system.join("\n")).not.toContain("<quorum-restart-required>")
+
+    fs.rmSync(tmpDir, { recursive: true })
+  })
+
+  it("transform hook is resilient to stat failure (non-existent configPath)", async () => {
+    const hooks = createHooks(DEFAULT_CONFIG, TEST_SKILLS_DIR, {
+      configPath: "/nonexistent/path/quorum.json",
+      bootMtime: Date.now(),
+    })
+    const output = { system: [] as string[] }
+    await expect(
+      hooks["experimental.chat.system.transform"]?.({ model: { id: "unused" } } as never, output as never),
+    ).resolves.toBeUndefined()
+    // bootstrap still emitted, no throw
+    expect(output.system.join("\n")).toContain("<quorum-bootstrap>")
+    expect(output.system.join("\n")).not.toContain("<quorum-restart-required>")
+  })
+
+  it("restart-required block appears before config-issues block", async () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "quorum-test-"))
+    const configPath = path.join(tmpDir, "quorum.json")
+    fs.writeFileSync(configPath, "{}")
+    const bootMtime = fs.statSync(configPath).mtimeMs
+    const futureMs = bootMtime + 2000
+    fs.utimesSync(configPath, new Date(futureMs), new Date(futureMs))
+
+    const issues = ["Some issue"]
+    const hooks = createHooks(DEFAULT_CONFIG, TEST_SKILLS_DIR, { issues, configPath, bootMtime })
+    const output = { system: [] as string[] }
+    await hooks["experimental.chat.system.transform"]?.({ model: { id: "unused" } } as never, output as never)
+    const text = output.system.join("\n")
+    expect(text.indexOf("<quorum-restart-required>")).toBeLessThan(text.indexOf("<quorum-config-issues>"))
+
+    fs.rmSync(tmpDir, { recursive: true })
   })
 })

@@ -1,9 +1,7 @@
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import type { QuorumConfig, QuorumMember, ReasoningEffort, TriggerMode } from "./types.js"
-
-const MEMBER_NAME_RE = /^[a-z][a-z0-9-]*$/
+import type { ConfigLoadResult, QuorumConfig, QuorumMember, ReasoningEffort, TriggerMode } from "./types.js"
 
 export const DEFAULT_CONFIG: QuorumConfig = {
   members: [
@@ -31,69 +29,143 @@ function parseReasoningEffort(value: unknown): ReasoningEffort | undefined {
   return value === "low" || value === "medium" || value === "high" || value === "xhigh" ? value : undefined
 }
 
-function parseMember(value: unknown): QuorumMember | undefined {
-  if (!isRecord(value)) return undefined
+type MemberParseResult = { member: QuorumMember } | { issue: string }
+
+function parseMemberWithDiagnostic(value: unknown, index: number): MemberParseResult {
+  if (!isRecord(value)) {
+    return { issue: `Invalid member entry at index ${index}: expected an object` }
+  }
   const name = nonEmptyString(value.name)
+  if (!name) {
+    return { issue: `Invalid member entry at index ${index}: missing required field 'name' or it is not a non-empty string` }
+  }
   const providerID = nonEmptyString(value.providerID)
+  if (!providerID) {
+    return { issue: `Invalid member entry at index ${index}: field 'providerID' must be a non-empty string` }
+  }
   const modelID = nonEmptyString(value.modelID)
+  if (!modelID) {
+    return { issue: `Invalid member entry at index ${index}: field 'modelID' must be a non-empty string` }
+  }
   const label = nonEmptyString(value.label)
-  if (!name || !providerID || !modelID || !label) return undefined
-  if (!MEMBER_NAME_RE.test(name)) return undefined
+  if (!label) {
+    return { issue: `Invalid member entry at index ${index}: field 'label' must be a non-empty string` }
+  }
   const member: QuorumMember = { name, providerID, modelID, label }
   if (value.reasoningEffort !== undefined) {
     const effort = parseReasoningEffort(value.reasoningEffort)
     if (effort !== undefined) member.reasoningEffort = effort
   }
-  return member
+  return { member }
 }
 
-function parseDeepMembers(value: unknown, memberNames: Set<string>): QuorumMember[] | undefined {
+function parseMembersWithDiagnostics(
+  value: unknown,
+  issues: string[],
+): QuorumMember[] | undefined {
   if (!Array.isArray(value)) return undefined
-  if (value.length === 0) return undefined
-  const deep = value.map(parseMember).filter((m): m is QuorumMember => m !== undefined)
-  if (deep.length === 0) return undefined
-  const deepNames = new Set<string>()
-  for (const m of deep) {
-    if (deepNames.has(m.name)) return undefined
-    if (memberNames.has(m.name)) return undefined
-    deepNames.add(m.name)
+
+  const members: QuorumMember[] = []
+  for (let i = 0; i < value.length; i++) {
+    const result = parseMemberWithDiagnostic(value[i], i)
+    if ("member" in result) {
+      members.push(result.member)
+    } else {
+      issues.push(result.issue)
+    }
   }
-  return deep
-}
 
-function parseMembers(value: unknown): QuorumMember[] | undefined {
-  if (!Array.isArray(value)) return undefined
-  const members = value.map(parseMember).filter((member): member is QuorumMember => member !== undefined)
-  if (members.length < 2) return undefined
+  if (members.length < 2) {
+    issues.push(
+      `Fewer than 2 valid members parsed (got ${members.length}); config falling back to defaults`,
+    )
+    return undefined
+  }
+
   const names = new Set<string>()
   for (const member of members) {
-    if (names.has(member.name)) return undefined
+    if (names.has(member.name)) {
+      issues.push(
+        `Duplicate member name '${member.name}'; config falling back to defaults`,
+      )
+      return undefined
+    }
     names.add(member.name)
   }
+
   return members
 }
 
-export function parseConfig(value: unknown): QuorumConfig {
-  if (!isRecord(value)) return DEFAULT_CONFIG
-  const members = parseMembers(value.members) ?? DEFAULT_CONFIG.members
-  const memberNames = new Set(members.map((m) => m.name))
-  const deepMembers = parseDeepMembers(value.deepMembers, memberNames)
+function parseDeepMembersWithDiagnostics(
+  value: unknown,
+  memberNames: Set<string>,
+  issues: string[],
+): QuorumMember[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  if (value.length === 0) return undefined
+
+  const deep: QuorumMember[] = []
+  for (let i = 0; i < value.length; i++) {
+    const result = parseMemberWithDiagnostic(value[i], i)
+    if ("member" in result) {
+      deep.push(result.member)
+    } else {
+      issues.push(`deepMembers: ${result.issue}`)
+    }
+  }
+
+  if (deep.length === 0) return undefined
+
+  const deepNames = new Set<string>()
+  for (const m of deep) {
+    if (deepNames.has(m.name)) {
+      issues.push(
+        `deepMembers: duplicate name '${m.name}'; deepMembers dropped`,
+      )
+      return undefined
+    }
+    if (memberNames.has(m.name)) {
+      issues.push(
+        `deepMembers entry collides with a regular member name '${m.name}'; deepMembers dropped`,
+      )
+      return undefined
+    }
+    deepNames.add(m.name)
+  }
+
+  return deep
+}
+
+export function parseConfig(value: unknown): ConfigLoadResult {
+  const issues: string[] = []
+
+  if (!isRecord(value)) {
+    issues.push("Config root is not an object; falling back to defaults")
+    return { config: DEFAULT_CONFIG, issues }
+  }
+
+  const members = parseMembersWithDiagnostics(value.members, issues)
+  const resolvedMembers = members ?? DEFAULT_CONFIG.members
+  const memberNames = new Set(resolvedMembers.map((m) => m.name))
+  const deepMembers = parseDeepMembersWithDiagnostics(value.deepMembers, memberNames, issues)
+
   const config: QuorumConfig = {
-    members,
+    members: resolvedMembers,
     triggerMode: parseTriggerMode(value.triggerMode) ?? DEFAULT_CONFIG.triggerMode,
     specDir: nonEmptyString(value.specDir) ?? DEFAULT_CONFIG.specDir,
   }
   if (deepMembers !== undefined) config.deepMembers = deepMembers
-  return config
+
+  return { config, issues }
 }
 
 export function resolveConfigPath(configDir = process.env.OPENCODE_CONFIG_DIR ?? path.join(os.homedir(), ".config", "opencode")): string {
   return path.join(configDir, "quorum.json")
 }
 
-export function loadConfig(configDir?: string): QuorumConfig {
+export function loadConfig(configDir?: string): ConfigLoadResult {
   const filePath = resolveConfigPath(configDir)
-  if (!fs.existsSync(filePath)) return DEFAULT_CONFIG
+  if (!fs.existsSync(filePath)) return { config: DEFAULT_CONFIG, issues: [] }
   const raw = fs.readFileSync(filePath, "utf8")
   return parseConfig(JSON.parse(raw))
 }

@@ -31,13 +31,22 @@ Create `~/.config/opencode/quorum.json`:
 
 Each entry in `members` requires:
 
-- `name` — kebab-case agent identifier matching `^[a-z][a-z0-9-]*$`. Used to dispatch `task` calls.
+- `name` — agent identifier used to dispatch `task` calls. Any non-empty string is accepted; opencode itself may impose further constraints.
 - `providerID` — opencode provider (e.g. `openrouter`).
 - `modelID` — model path understood by the provider.
 - `label` — short display name used in synthesis output.
 - `reasoningEffort` *(optional)* — overrides the pool default. One of `"low"`, `"medium"`, `"high"`, `"xhigh"`. Default for regular members is `"high"`.
 
-At least two members are required.
+At least two members are required. Member names must be unique within `members`.
+
+### Config reload & validation
+
+- `quorum.json` is read **once, at opencode startup**. Opencode registers plugin-provided agents only at boot — there is no runtime re-registration API. If you edit `quorum.json` in an active session, restart opencode for changes to take effect.
+- The plugin stats `quorum.json` on every chat turn. If its mtime is newer than when opencode started, the bootstrap system prompt gains a `<quorum-restart-required>` block instructing the orchestrator to tell you to restart opencode. This prevents silently dispatching stale agents.
+- Parse failures are surfaced, not swallowed. If any member entry is invalid (missing field, duplicate name, etc.), the plugin:
+  1. Logs a `[quorum] Config issues:` warning to opencode's plugin log at startup.
+  2. Injects a `<quorum-config-issues>` block into the bootstrap prompt on every chat turn until the config is fixed, so the orchestrator tells you what's wrong.
+  3. Falls back to `DEFAULT_CONFIG` only for the specific field that failed (the rest of a valid config is preserved).
 
 ### Deep members (opt-in)
 
@@ -62,10 +71,10 @@ At least two members are required.
 Rules for `deepMembers`:
 
 - At least one entry required (if the field is present).
-- Same per-entry fields as `members` (same name pattern, same required fields).
+- Same per-entry fields as `members` (same required fields, any non-empty `name`).
 - `name` values must be unique within `deepMembers` and must not collide with any name in `members`.
 - `reasoningEffort` default for deep members is `"xhigh"` (overridden per-entry if set).
-- If `deepMembers` is malformed (empty after filtering, duplicate names, name collision with `members`), the field is silently dropped — the rest of the config is unaffected.
+- If `deepMembers` is malformed (empty after filtering, duplicate names, name collision with `members`), the field is dropped and the rest of the config is unaffected. The failure is reported through the same `<quorum-config-issues>` mechanism described above.
 
 ## Trigger modes
 

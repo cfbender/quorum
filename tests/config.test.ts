@@ -13,7 +13,7 @@ describe("config", () => {
   })
 
   it("parses a complete v0.2 config object", () => {
-    const config = parseConfig({
+    const { config, issues } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -30,27 +30,81 @@ describe("config", () => {
       triggerMode: "manual",
       specDir: "docs/custom/specs",
     })
+    expect(issues).toEqual([])
   })
 
-  it("falls back to defaults for invalid members", () => {
-    const config = parseConfig({
-      members: [{ name: "Bad Name", providerID: "openrouter", modelID: "x", label: "x" }],
+  it("clean config produces empty issues array", () => {
+    const { issues } = parseConfig({
+      members: [
+        { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
+        { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
+      ],
+      triggerMode: "auto",
+      specDir: "docs/quorum/specs",
+    })
+    expect(issues).toEqual([])
+  })
+
+  it("falls back to defaults for invalid members (missing providerID)", () => {
+    const { config, issues } = parseConfig({
+      members: [{ name: "quorum-a", modelID: "x", label: "x" }],
       triggerMode: "always",
       specDir: "",
     })
 
     expect(config).toEqual(DEFAULT_CONFIG)
+    expect(issues.length).toBeGreaterThan(0)
+    expect(issues.some((s) => s.includes("providerID"))).toBe(true)
+  })
+
+  it("invalid member at index produces issue string mentioning the index", () => {
+    const { issues } = parseConfig({
+      members: [
+        { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
+        { name: "", providerID: "openrouter", modelID: "x", label: "x" },
+      ],
+    })
+    expect(issues.some((s) => s.includes("index 1"))).toBe(true)
   })
 
   it("requires unique member names and at least two valid members", () => {
-    const duplicate = parseConfig({
+    const { config, issues } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "a" },
         { name: "quorum-a", providerID: "openrouter", modelID: "google/gemini-3.1-pro-preview", label: "b" },
       ],
     })
 
-    expect(duplicate).toEqual(DEFAULT_CONFIG)
+    expect(config).toEqual(DEFAULT_CONFIG)
+    expect(issues.length).toBeGreaterThan(0)
+  })
+
+  it("member name with dots is accepted", () => {
+    const { config, issues } = parseConfig({
+      members: [
+        { name: "quorum-sonnet-4.6", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
+        { name: "quorum-glm-5.1", providerID: "openrouter", modelID: "z-ai/glm-5.1", label: "glm" },
+      ],
+      triggerMode: "auto",
+      specDir: "docs/quorum/specs",
+    })
+    expect(issues).toEqual([])
+    expect(config.members[0]?.name).toBe("quorum-sonnet-4.6")
+    expect(config.members[1]?.name).toBe("quorum-glm-5.1")
+  })
+
+  it("member name with underscores is accepted", () => {
+    const { config, issues } = parseConfig({
+      members: [
+        { name: "quorum_foo", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "foo" },
+        { name: "quorum_bar", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "bar" },
+      ],
+      triggerMode: "auto",
+      specDir: "docs/quorum/specs",
+    })
+    expect(issues).toEqual([])
+    expect(config.members[0]?.name).toBe("quorum_foo")
+    expect(config.members[1]?.name).toBe("quorum_bar")
   })
 
   it("resolves quorum.json under the provided config dir", () => {
@@ -60,7 +114,7 @@ describe("config", () => {
   // deepMembers tests
 
   it("deepMembers unset → not present on parsed config", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -72,7 +126,7 @@ describe("config", () => {
   })
 
   it("deepMembers empty array → treated as unset", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -85,7 +139,7 @@ describe("config", () => {
   })
 
   it("deepMembers valid single entry → parsed correctly", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -102,7 +156,7 @@ describe("config", () => {
   })
 
   it("deepMembers valid multiple entries → all parsed", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -120,7 +174,7 @@ describe("config", () => {
   })
 
   it("deepMembers within-array duplicate names → dropped to undefined", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -136,7 +190,7 @@ describe("config", () => {
   })
 
   it("deepMembers cross-array name collision with members → dropped to undefined", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -150,23 +204,25 @@ describe("config", () => {
     expect(config.deepMembers).toBeUndefined()
   })
 
-  it("deepMembers malformed entry (bad name pattern) → dropped to undefined", () => {
-    const config = parseConfig({
+  it("deepMembers malformed entry (missing required field) → dropped with issue recorded", () => {
+    const { config, issues } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
       ],
       deepMembers: [
-        { name: "Bad Deep Name", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
+        { name: "quorum-deep-a", providerID: "", modelID: "anthropic/claude-opus-4-5", label: "opus" },
       ],
       triggerMode: "auto",
       specDir: "docs/quorum/specs",
     })
     expect(config.deepMembers).toBeUndefined()
+    expect(issues.length).toBeGreaterThan(0)
+    expect(issues.some((s) => s.includes("providerID"))).toBe(true)
   })
 
   it("malformed deepMembers does not poison base config", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -184,7 +240,7 @@ describe("config", () => {
   })
 
   it("per-member reasoningEffort parsed and preserved", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt", reasoningEffort: "medium" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -197,7 +253,7 @@ describe("config", () => {
   })
 
   it("per-member reasoningEffort on deepMembers parsed and preserved", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -212,7 +268,7 @@ describe("config", () => {
   })
 
   it("invalid reasoningEffort dropped — member still accepted", () => {
-    const config = parseConfig({
+    const { config } = parseConfig({
       members: [
         { name: "quorum-a", providerID: "openrouter", modelID: "openai/gpt-5.4", label: "gpt", reasoningEffort: "ultra" },
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },

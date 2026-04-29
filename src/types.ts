@@ -16,6 +16,11 @@ export type QuorumConfig = {
   specDir: string
 }
 
+export type ConfigLoadResult = {
+  config: QuorumConfig
+  issues: string[]
+}
+
 // v0.1 types — retained for compatibility until the v0.1 consult/tool stack is removed.
 
 /**

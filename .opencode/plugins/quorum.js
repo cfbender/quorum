@@ -1,5 +1,6 @@
 // src/plugin.ts
 import { fileURLToPath } from "node:url";
+import * as fs2 from "node:fs";
 import * as path2 from "node:path";
 
 // src/prompts.ts
@@ -69,7 +70,10 @@ Hard rule: never invoke deep members by default. Only dispatch on explicit user 
 
 Triggers for deep review:
 - User explicitly asks for deeper analysis, double-check, or follow-up review.
+- User refers to the deep pool by name \u2014 phrasings like "ask the deep quorum", "deep quorum", "deep members", "deep pool", "the deep ones", "use the heavy models", or "run the deep review" all count as explicit requests.
 - User contests or expresses doubt about a prior synthesis.
+
+Treat any user message that names the deep pool or asks for heavier/deeper review as explicit approval to dispatch deep members. You do not need to ask for additional confirmation in that case.
 
 Two dispatch modes:
 - Replace (upfront): user asks for deep analysis before regular synthesis \u2192 dispatch deep members instead of regular members.
@@ -104,7 +108,6 @@ When you have open or clarification questions during a quorum workflow, ask them
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-var MEMBER_NAME_RE = /^[a-z][a-z0-9-]*$/;
 var DEFAULT_CONFIG = {
   members: [
     { name: "quorum-sonnet", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
@@ -126,64 +129,117 @@ function parseTriggerMode(value) {
 function parseReasoningEffort(value) {
   return value === "low" || value === "medium" || value === "high" || value === "xhigh" ? value : void 0;
 }
-function parseMember(value) {
-  if (!isRecord(value)) return void 0;
+function parseMemberWithDiagnostic(value, index) {
+  if (!isRecord(value)) {
+    return { issue: `Invalid member entry at index ${index}: expected an object` };
+  }
   const name = nonEmptyString(value.name);
+  if (!name) {
+    return { issue: `Invalid member entry at index ${index}: missing required field 'name' or it is not a non-empty string` };
+  }
   const providerID = nonEmptyString(value.providerID);
+  if (!providerID) {
+    return { issue: `Invalid member entry at index ${index}: field 'providerID' must be a non-empty string` };
+  }
   const modelID = nonEmptyString(value.modelID);
+  if (!modelID) {
+    return { issue: `Invalid member entry at index ${index}: field 'modelID' must be a non-empty string` };
+  }
   const label = nonEmptyString(value.label);
-  if (!name || !providerID || !modelID || !label) return void 0;
-  if (!MEMBER_NAME_RE.test(name)) return void 0;
+  if (!label) {
+    return { issue: `Invalid member entry at index ${index}: field 'label' must be a non-empty string` };
+  }
   const member = { name, providerID, modelID, label };
   if (value.reasoningEffort !== void 0) {
     const effort = parseReasoningEffort(value.reasoningEffort);
     if (effort !== void 0) member.reasoningEffort = effort;
   }
-  return member;
+  return { member };
 }
-function parseDeepMembers(value, memberNames) {
+function parseMembersWithDiagnostics(value, issues) {
   if (!Array.isArray(value)) return void 0;
-  if (value.length === 0) return void 0;
-  const deep = value.map(parseMember).filter((m) => m !== void 0);
-  if (deep.length === 0) return void 0;
-  const deepNames = /* @__PURE__ */ new Set();
-  for (const m of deep) {
-    if (deepNames.has(m.name)) return void 0;
-    if (memberNames.has(m.name)) return void 0;
-    deepNames.add(m.name);
+  const members = [];
+  for (let i = 0; i < value.length; i++) {
+    const result = parseMemberWithDiagnostic(value[i], i);
+    if ("member" in result) {
+      members.push(result.member);
+    } else {
+      issues.push(result.issue);
+    }
   }
-  return deep;
-}
-function parseMembers(value) {
-  if (!Array.isArray(value)) return void 0;
-  const members = value.map(parseMember).filter((member) => member !== void 0);
-  if (members.length < 2) return void 0;
+  if (members.length < 2) {
+    issues.push(
+      `Fewer than 2 valid members parsed (got ${members.length}); config falling back to defaults`
+    );
+    return void 0;
+  }
   const names = /* @__PURE__ */ new Set();
   for (const member of members) {
-    if (names.has(member.name)) return void 0;
+    if (names.has(member.name)) {
+      issues.push(
+        `Duplicate member name '${member.name}'; config falling back to defaults`
+      );
+      return void 0;
+    }
     names.add(member.name);
   }
   return members;
 }
+function parseDeepMembersWithDiagnostics(value, memberNames, issues) {
+  if (!Array.isArray(value)) return void 0;
+  if (value.length === 0) return void 0;
+  const deep = [];
+  for (let i = 0; i < value.length; i++) {
+    const result = parseMemberWithDiagnostic(value[i], i);
+    if ("member" in result) {
+      deep.push(result.member);
+    } else {
+      issues.push(`deepMembers: ${result.issue}`);
+    }
+  }
+  if (deep.length === 0) return void 0;
+  const deepNames = /* @__PURE__ */ new Set();
+  for (const m of deep) {
+    if (deepNames.has(m.name)) {
+      issues.push(
+        `deepMembers: duplicate name '${m.name}'; deepMembers dropped`
+      );
+      return void 0;
+    }
+    if (memberNames.has(m.name)) {
+      issues.push(
+        `deepMembers entry collides with a regular member name '${m.name}'; deepMembers dropped`
+      );
+      return void 0;
+    }
+    deepNames.add(m.name);
+  }
+  return deep;
+}
 function parseConfig(value) {
-  if (!isRecord(value)) return DEFAULT_CONFIG;
-  const members = parseMembers(value.members) ?? DEFAULT_CONFIG.members;
-  const memberNames = new Set(members.map((m) => m.name));
-  const deepMembers = parseDeepMembers(value.deepMembers, memberNames);
+  const issues = [];
+  if (!isRecord(value)) {
+    issues.push("Config root is not an object; falling back to defaults");
+    return { config: DEFAULT_CONFIG, issues };
+  }
+  const members = parseMembersWithDiagnostics(value.members, issues);
+  const resolvedMembers = members ?? DEFAULT_CONFIG.members;
+  const memberNames = new Set(resolvedMembers.map((m) => m.name));
+  const deepMembers = parseDeepMembersWithDiagnostics(value.deepMembers, memberNames, issues);
   const config = {
-    members,
+    members: resolvedMembers,
     triggerMode: parseTriggerMode(value.triggerMode) ?? DEFAULT_CONFIG.triggerMode,
     specDir: nonEmptyString(value.specDir) ?? DEFAULT_CONFIG.specDir
   };
   if (deepMembers !== void 0) config.deepMembers = deepMembers;
-  return config;
+  return { config, issues };
 }
 function resolveConfigPath(configDir = process.env.OPENCODE_CONFIG_DIR ?? path.join(os.homedir(), ".config", "opencode")) {
   return path.join(configDir, "quorum.json");
 }
 function loadConfig(configDir) {
   const filePath = resolveConfigPath(configDir);
-  if (!fs.existsSync(filePath)) return DEFAULT_CONFIG;
+  if (!fs.existsSync(filePath)) return { config: DEFAULT_CONFIG, issues: [] };
   const raw = fs.readFileSync(filePath, "utf8");
   return parseConfig(JSON.parse(raw));
 }
@@ -191,7 +247,8 @@ function loadConfig(configDir) {
 // src/plugin.ts
 var __dirname = path2.dirname(fileURLToPath(import.meta.url));
 var SKILLS_DIR = path2.resolve(__dirname, "../../skills");
-function createHooks(config, skillsDir = SKILLS_DIR) {
+function createHooks(config, skillsDir = SKILLS_DIR, extras = {}) {
+  const { issues = [], configPath, bootMtime } = extras;
   const registerAgents = config.triggerMode !== "off";
   const incomingAgents = registerAgents ? buildAgentConfigs(config) : {};
   const bootstrap = registerAgents ? renderBootstrap(config) : null;
@@ -213,14 +270,44 @@ function createHooks(config, skillsDir = SKILLS_DIR) {
     },
     ...bootstrap !== null ? {
       "experimental.chat.system.transform": async (_input, output) => {
-        output.system.push(bootstrap);
+        const parts = [];
+        if (configPath != null && bootMtime != null) {
+          try {
+            const currentMtime = fs2.statSync(configPath).mtimeMs;
+            if (currentMtime > bootMtime) {
+              const lastModified = new Date(currentMtime).toISOString();
+              parts.push(
+                `<quorum-restart-required>
+quorum.json has been edited since opencode started (last modified: ${lastModified}). The currently registered quorum agents reflect the old config. Restart opencode to apply changes. Tell the user this before proceeding with any quorum work.
+</quorum-restart-required>`
+              );
+            }
+          } catch {
+          }
+        }
+        if (issues.length > 0) {
+          const issueLines = issues.map((issue) => `- ${issue}`).join("\n");
+          parts.push(
+            `<quorum-config-issues>
+The following issues were detected in quorum.json at opencode startup. Tell the user so they can fix their config:
+${issueLines}
+</quorum-config-issues>`
+          );
+        }
+        parts.push(bootstrap);
+        output.system.push(parts.join("\n\n"));
       }
     } : {}
   };
 }
 var QuorumPlugin = async () => {
-  const config = loadConfig();
-  return createHooks(config);
+  const { config, issues } = loadConfig();
+  if (issues.length > 0) {
+    console.warn("[quorum] Config issues:\n" + issues.join("\n"));
+  }
+  const configPath = resolveConfigPath();
+  const bootMtime = fs2.existsSync(configPath) ? fs2.statSync(configPath).mtimeMs : null;
+  return createHooks(config, SKILLS_DIR, { issues, configPath, bootMtime });
 };
 var plugin_default = QuorumPlugin;
 export {
