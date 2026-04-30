@@ -4,7 +4,6 @@ import * as os from "node:os"
 import * as path from "node:path"
 import { DEFAULT_CONFIG } from "../src/config.js"
 import { createHooks } from "../src/plugin.js"
-import type { QuorumConfig } from "../src/types.js"
 
 const TEST_SKILLS_DIR = "/test/skills"
 
@@ -93,21 +92,7 @@ describe("plugin hooks", () => {
     expect(Object.keys(typed.agent ?? {})).toContain("quorum-sonnet")
   })
 
-  it("deep agents appear in input.agent when deepMembers configured", async () => {
-    const config: QuorumConfig = {
-      ...DEFAULT_CONFIG,
-      deepMembers: [
-        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
-      ],
-    }
-    const hooks = createHooks(config, TEST_SKILLS_DIR)
-    const cfg = { agent: {} as Record<string, unknown> }
-    await hooks.config?.(cfg as never)
-    expect(Object.keys(cfg.agent)).toContain("quorum-sonnet")
-    expect(Object.keys(cfg.agent)).toContain("quorum-deep-a")
-  })
-
-  it("hook shape unchanged for configs without deepMembers", async () => {
+  it("hook shape unchanged — exactly 3 agents for default config", async () => {
     const hooks = createHooks(DEFAULT_CONFIG, TEST_SKILLS_DIR)
     const cfg = { agent: {} as Record<string, unknown> }
     await hooks.config?.(cfg as never)

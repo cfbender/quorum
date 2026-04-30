@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { DEFAULT_CONFIG } from "../src/config.js"
 import { buildAgentConfigs } from "../src/agents.js"
-import { DEEP_MEMBER_SYSTEM_PROMPT, MEMBER_SYSTEM_PROMPT } from "../src/prompts.js"
+import { MEMBER_SYSTEM_PROMPT } from "../src/prompts.js"
 import type { QuorumConfig } from "../src/types.js"
 
 describe("buildAgentConfigs", () => {
@@ -38,52 +38,17 @@ describe("buildAgentConfigs", () => {
     expect(agentMap["quorum-b"]?.reasoningEffort).toBe("high")
   })
 
-  it("deep members registered with DEEP_MEMBER_SYSTEM_PROMPT and default xhigh", () => {
-    const config: QuorumConfig = {
-      ...DEFAULT_CONFIG,
-      deepMembers: [
-        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
-      ],
+  it("all members registered with MEMBER_SYSTEM_PROMPT", () => {
+    const agentMap = buildAgentConfigs(DEFAULT_CONFIG)
+    for (const name of ["quorum-sonnet", "quorum-gpt5", "quorum-gemini"]) {
+      expect(agentMap[name]?.prompt).toBe(MEMBER_SYSTEM_PROMPT)
     }
-    const agentMap = buildAgentConfigs(config)
-    expect(agentMap["quorum-deep-a"]).toMatchObject({
-      mode: "subagent",
-      model: "openrouter/anthropic/claude-opus-4-5",
-      prompt: DEEP_MEMBER_SYSTEM_PROMPT,
-      reasoningEffort: "xhigh",
-      tools: {},
-    })
-    expect(agentMap["quorum-deep-a"]?.description).toContain("deep-review member")
-    expect(agentMap["quorum-deep-a"]?.description).toContain("explicit deep-analysis")
   })
 
-  it("per-member reasoningEffort override respected for deep members", () => {
-    const config: QuorumConfig = {
-      ...DEFAULT_CONFIG,
-      deepMembers: [
-        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus", reasoningEffort: "high" },
-      ],
-    }
-    const agentMap = buildAgentConfigs(config)
-    expect(agentMap["quorum-deep-a"]?.reasoningEffort).toBe("high")
-  })
-
-  it("regular members unchanged when deepMembers present", () => {
-    const config: QuorumConfig = {
-      ...DEFAULT_CONFIG,
-      deepMembers: [
-        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
-      ],
-    }
-    const agentMap = buildAgentConfigs(config)
-    expect(agentMap["quorum-sonnet"]?.prompt).toBe(MEMBER_SYSTEM_PROMPT)
-    expect(agentMap["quorum-sonnet"]?.reasoningEffort).toBe("high")
-  })
-
-  it("no deep members registered when deepMembers unset", () => {
+  it("result contains exactly one entry per member", () => {
     const agentMap = buildAgentConfigs(DEFAULT_CONFIG)
     const keys = Object.keys(agentMap)
-    expect(keys).not.toContain("quorum-deep-a")
     expect(keys).toHaveLength(3)
+    expect(keys).toEqual(["quorum-sonnet", "quorum-gpt5", "quorum-gemini"])
   })
 })

@@ -11,7 +11,6 @@ export type QuorumMember = {
 
 export type QuorumConfig = {
   members: QuorumMember[]
-  deepMembers?: QuorumMember[]
   triggerMode: TriggerMode
   specDir: string
 }

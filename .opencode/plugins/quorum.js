@@ -4,19 +4,6 @@ import * as fs2 from "node:fs";
 import * as path2 from "node:path";
 
 // src/prompts.ts
-var DEEP_MEMBER_SYSTEM_PROMPT = `You are a deep-review member of a quorum of planning consultants. You are invoked only on explicit request for second-order analysis, double-checking, or high-stakes architecture review.
-
-Your role is to be thorough, critical, and unconventional where warranted.
-
-Requirements:
-- Identify second-order implications and downstream consequences of the proposed approach.
-- Actively challenge assumptions \u2014 name them explicitly and question whether they hold.
-- If prior synthesis is provided, critique it: identify what it got right, what it missed, and where it was overconfident.
-- Surface failure modes, edge cases, and risks that a first-pass analysis may have overlooked.
-- Do not simply restate or validate prior work. Add new signal.
-- Do not call tools.
-- Do not write files.
-- Do not claim consensus; provide your independent critical perspective.`;
 var MEMBER_SYSTEM_PROMPT = `You are one member of a quorum of planning consultants.
 
 Read the planning question carefully and propose a practical approach with rationale.
@@ -42,18 +29,6 @@ function buildAgentConfigs(config) {
       reasoningEffort: member.reasoningEffort ?? "high"
     };
   }
-  if (config.deepMembers) {
-    for (const member of config.deepMembers) {
-      output[member.name] = {
-        mode: "subagent",
-        model: `${member.providerID}/${member.modelID}`,
-        prompt: DEEP_MEMBER_SYSTEM_PROMPT,
-        description: `Quorum deep-review member (${member.label}). Use only on explicit deep-analysis or double-check requests.`,
-        tools: {},
-        reasoningEffort: member.reasoningEffort ?? "xhigh"
-      };
-    }
-  }
   return output;
 }
 
@@ -61,28 +36,6 @@ function buildAgentConfigs(config) {
 function renderBootstrap(config) {
   if (config.triggerMode !== "auto") return null;
   const memberList = config.members.map((member) => member.name).join(", ");
-  const deepBlock = config.deepMembers && config.deepMembers.length > 0 ? `
-
-<quorum-deep>
-Deep-review members available: ${config.deepMembers.map((m) => m.name).join(", ")}.
-
-Hard rule: never invoke deep members by default. Only dispatch on explicit user request.
-
-Triggers for deep review:
-- User explicitly asks for deeper analysis, double-check, or follow-up review.
-- User refers to the deep pool by name \u2014 phrasings like "ask the deep quorum", "deep quorum", "deep members", "deep pool", "the deep ones", "use the heavy models", or "run the deep review" all count as explicit requests.
-- User contests or expresses doubt about a prior synthesis.
-
-Treat any user message that names the deep pool or asks for heavier/deeper review as explicit approval to dispatch deep members. You do not need to ask for additional confirmation in that case.
-
-Two dispatch modes:
-- Replace (upfront): user asks for deep analysis before regular synthesis \u2192 dispatch deep members instead of regular members.
-- Follow-up (escalation): regular synthesis already produced, user asks for double-check \u2192 dispatch deep members with prior synthesis and original request as context.
-
-When regular synthesis is contested or uncertain, you may offer deep follow-up \u2014 but never invoke deep members without explicit user approval.
-
-Deep output should be rendered as a distinct "Deep review" section, not merged into the regular synthesis.
-</quorum-deep>` : "";
   return `<quorum-bootstrap>
 You have quorum planning members available as subagents: ${memberList}.
 
@@ -101,7 +54,7 @@ If you are unsure, treat the request as planning-class and run quorum.
 For planning-class requests, load the quorum skill and dispatch parallel task calls to each member with the same planning prompt. Use member outputs to synthesize: Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, and Proposed design. Prefer opencode question tool for discrete open questions. Receive explicit design approval before implementation.
 
 When you have open or clarification questions during a quorum workflow, ask them directly to the user \u2014 via the opencode question tool or in prose. Never dispatch clarification questions to subagents via task calls.
-</quorum-bootstrap>${deepBlock}`;
+</quorum-bootstrap>`;
 }
 
 // src/config.ts
@@ -185,37 +138,6 @@ function parseMembersWithDiagnostics(value, issues) {
   }
   return members;
 }
-function parseDeepMembersWithDiagnostics(value, memberNames, issues) {
-  if (!Array.isArray(value)) return void 0;
-  if (value.length === 0) return void 0;
-  const deep = [];
-  for (let i = 0; i < value.length; i++) {
-    const result = parseMemberWithDiagnostic(value[i], i);
-    if ("member" in result) {
-      deep.push(result.member);
-    } else {
-      issues.push(`deepMembers: ${result.issue}`);
-    }
-  }
-  if (deep.length === 0) return void 0;
-  const deepNames = /* @__PURE__ */ new Set();
-  for (const m of deep) {
-    if (deepNames.has(m.name)) {
-      issues.push(
-        `deepMembers: duplicate name '${m.name}'; deepMembers dropped`
-      );
-      return void 0;
-    }
-    if (memberNames.has(m.name)) {
-      issues.push(
-        `deepMembers entry collides with a regular member name '${m.name}'; deepMembers dropped`
-      );
-      return void 0;
-    }
-    deepNames.add(m.name);
-  }
-  return deep;
-}
 function parseConfig(value) {
   const issues = [];
   if (!isRecord(value)) {
@@ -224,14 +146,11 @@ function parseConfig(value) {
   }
   const members = parseMembersWithDiagnostics(value.members, issues);
   const resolvedMembers = members ?? DEFAULT_CONFIG.members;
-  const memberNames = new Set(resolvedMembers.map((m) => m.name));
-  const deepMembers = parseDeepMembersWithDiagnostics(value.deepMembers, memberNames, issues);
   const config = {
     members: resolvedMembers,
     triggerMode: parseTriggerMode(value.triggerMode) ?? DEFAULT_CONFIG.triggerMode,
     specDir: nonEmptyString(value.specDir) ?? DEFAULT_CONFIG.specDir
   };
-  if (deepMembers !== void 0) config.deepMembers = deepMembers;
   return { config, issues };
 }
 function resolveConfigPath(configDir = process.env.OPENCODE_CONFIG_DIR ?? path.join(os.homedir(), ".config", "opencode")) {

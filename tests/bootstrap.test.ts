@@ -45,43 +45,8 @@ describe("bootstrap", () => {
     expect(renderBootstrap(config)).toBeNull()
   })
 
-  it("quorum-deep block present in auto mode when deepMembers configured", () => {
-    const config: QuorumConfig = {
-      ...DEFAULT_CONFIG,
-      deepMembers: [
-        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
-      ],
-    }
-    const text = renderBootstrap(config)!
-    expect(text).toContain("<quorum-deep>")
-    expect(text).toContain("quorum-deep-a")
-    expect(text).toContain("never invoke deep members by default")
-  })
-
-  it("quorum-deep block absent when deepMembers unset", () => {
+  it("no quorum-deep block in output", () => {
     const text = renderBootstrap(DEFAULT_CONFIG)!
     expect(text).not.toContain("<quorum-deep>")
-  })
-
-  it("quorum-deep block absent in manual mode even if deepMembers configured", () => {
-    const config: QuorumConfig = {
-      ...DEFAULT_CONFIG,
-      triggerMode: "manual",
-      deepMembers: [
-        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
-      ],
-    }
-    expect(renderBootstrap(config)).toBeNull()
-  })
-
-  it("quorum-deep block absent in off mode even if deepMembers configured", () => {
-    const config: QuorumConfig = {
-      ...DEFAULT_CONFIG,
-      triggerMode: "off",
-      deepMembers: [
-        { name: "quorum-deep-a", providerID: "openrouter", modelID: "anthropic/claude-opus-4-5", label: "opus" },
-      ],
-    }
-    expect(renderBootstrap(config)).toBeNull()
   })
 })

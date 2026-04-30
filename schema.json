@@ -22,22 +22,6 @@
         }
       }
     },
-    "deepMembers": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["name", "providerID", "modelID", "label"],
-        "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "providerID": { "type": "string", "minLength": 1 },
-          "modelID": { "type": "string", "minLength": 1 },
-          "label": { "type": "string", "minLength": 1 },
-          "reasoningEffort": { "enum": ["low", "medium", "high", "xhigh"] }
-        }
-      }
-    },
     "triggerMode": { "enum": ["auto", "manual", "off"] },
     "specDir": { "type": "string", "minLength": 1 }
   }

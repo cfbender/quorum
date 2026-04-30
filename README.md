@@ -48,34 +48,6 @@ At least two members are required. Member names must be unique within `members`.
   2. Injects a `<quorum-config-issues>` block into the bootstrap prompt on every chat turn until the config is fixed, so the orchestrator tells you what's wrong.
   3. Falls back to `DEFAULT_CONFIG` only for the specific field that failed (the rest of a valid config is preserved).
 
-### Deep members (opt-in)
-
-`deepMembers` is an optional second pool for heavier, more expensive analysis. Deep members are **never invoked by default** — they run only on explicit user request ("go deeper", "double-check this", follow-up review).
-
-```json
-{
-  "members": [
-    { "name": "quorum-sonnet", "providerID": "openrouter", "modelID": "anthropic/claude-sonnet-4.6", "label": "sonnet" },
-    { "name": "quorum-gpt5", "providerID": "openrouter", "modelID": "openai/gpt-5.4", "label": "gpt5" },
-    { "name": "quorum-gemini", "providerID": "openrouter", "modelID": "google/gemini-3.1-pro-preview", "label": "gemini" }
-  ],
-  "deepMembers": [
-    { "name": "quorum-deep-sonnet", "providerID": "openrouter", "modelID": "anthropic/claude-opus-4-5", "label": "opus", "reasoningEffort": "xhigh" },
-    { "name": "quorum-deep-o3", "providerID": "openrouter", "modelID": "openai/o3", "label": "o3" }
-  ],
-  "triggerMode": "auto",
-  "specDir": "docs/quorum/specs"
-}
-```
-
-Rules for `deepMembers`:
-
-- At least one entry required (if the field is present).
-- Same per-entry fields as `members` (same required fields, any non-empty `name`).
-- `name` values must be unique within `deepMembers` and must not collide with any name in `members`.
-- `reasoningEffort` default for deep members is `"xhigh"` (overridden per-entry if set).
-- If `deepMembers` is malformed (empty after filtering, duplicate names, name collision with `members`), the field is dropped and the rest of the config is unaffected. The failure is reported through the same `<quorum-config-issues>` mechanism described above.
-
 ## Trigger modes
 
 - `auto`: registers all members as subagents **and** injects the bootstrap system prompt. The orchestrator automatically dispatches parallel planning tasks before creative work.

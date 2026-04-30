@@ -96,46 +96,6 @@ function parseMembersWithDiagnostics(
   return members
 }
 
-function parseDeepMembersWithDiagnostics(
-  value: unknown,
-  memberNames: Set<string>,
-  issues: string[],
-): QuorumMember[] | undefined {
-  if (!Array.isArray(value)) return undefined
-  if (value.length === 0) return undefined
-
-  const deep: QuorumMember[] = []
-  for (let i = 0; i < value.length; i++) {
-    const result = parseMemberWithDiagnostic(value[i], i)
-    if ("member" in result) {
-      deep.push(result.member)
-    } else {
-      issues.push(`deepMembers: ${result.issue}`)
-    }
-  }
-
-  if (deep.length === 0) return undefined
-
-  const deepNames = new Set<string>()
-  for (const m of deep) {
-    if (deepNames.has(m.name)) {
-      issues.push(
-        `deepMembers: duplicate name '${m.name}'; deepMembers dropped`,
-      )
-      return undefined
-    }
-    if (memberNames.has(m.name)) {
-      issues.push(
-        `deepMembers entry collides with a regular member name '${m.name}'; deepMembers dropped`,
-      )
-      return undefined
-    }
-    deepNames.add(m.name)
-  }
-
-  return deep
-}
-
 export function parseConfig(value: unknown): ConfigLoadResult {
   const issues: string[] = []
 
@@ -146,15 +106,12 @@ export function parseConfig(value: unknown): ConfigLoadResult {
 
   const members = parseMembersWithDiagnostics(value.members, issues)
   const resolvedMembers = members ?? DEFAULT_CONFIG.members
-  const memberNames = new Set(resolvedMembers.map((m) => m.name))
-  const deepMembers = parseDeepMembersWithDiagnostics(value.deepMembers, memberNames, issues)
 
   const config: QuorumConfig = {
     members: resolvedMembers,
     triggerMode: parseTriggerMode(value.triggerMode) ?? DEFAULT_CONFIG.triggerMode,
     specDir: nonEmptyString(value.specDir) ?? DEFAULT_CONFIG.specDir,
   }
-  if (deepMembers !== undefined) config.deepMembers = deepMembers
 
   return { config, issues }
 }
