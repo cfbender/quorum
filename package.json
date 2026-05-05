@@ -29,8 +29,5 @@
       "esbuild": "true",
       "msgpackr-extract": "true"
     }
-  },
-  "overrides": {
-    "uuid": "14.0.0"
   }
 }
