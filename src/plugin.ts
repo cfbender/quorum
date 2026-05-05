@@ -100,5 +100,3 @@ export const QuorumPlugin: Plugin = async ({ client: _client, directory: _direct
 
   return createHooks(config, SKILLS_DIR, { issues, configPath, bootMtime })
 }
-
-export default QuorumPlugin

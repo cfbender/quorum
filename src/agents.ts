@@ -1,6 +1,8 @@
-import type { AgentConfig } from "@opencode-ai/sdk"
+import type { Config } from "@opencode-ai/plugin"
 import { MEMBER_SYSTEM_PROMPT } from "./prompts.js"
 import type { QuorumConfig } from "./types.js"
+
+type AgentConfig = NonNullable<Config["agent"]>[string]
 
 export function buildAgentConfigs(config: QuorumConfig): Record<string, AgentConfig> {
   const output: Record<string, AgentConfig> = {}

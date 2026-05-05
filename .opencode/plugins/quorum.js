@@ -228,9 +228,6 @@ var QuorumPlugin = async ({ client: _client, directory: _directory }) => {
   const bootMtime = fs2.existsSync(configPath) ? fs2.statSync(configPath).mtimeMs : null;
   return createHooks(config, SKILLS_DIR, { issues, configPath, bootMtime });
 };
-var plugin_default = QuorumPlugin;
 export {
-  QuorumPlugin,
-  createHooks,
-  plugin_default as default
+  QuorumPlugin
 };
