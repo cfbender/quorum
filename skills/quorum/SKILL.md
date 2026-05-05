@@ -37,7 +37,7 @@ If you are unsure, treat the request as planning-class and invoke this skill.
 
 1. Explore project context: files, recent commits, existing patterns, and which high-level docs already exist (for example `AGENTS.md`, `ARCHITECTURE.md`, `docs/architecture/*`, `README.md`).
 2. Ask clarifying questions one at a time until the purpose, constraints, and success criteria are clear.
-3. Dispatch parallel `task` calls to each configured quorum member agent (for example `quorum-sonnet`, `quorum-gpt5`, `quorum-gemini`). Each call should include the problem statement, constraints, success criteria, and an explicit request for an independent approach proposal.
+3. Dispatch parallel `task` calls to each configured quorum member agent. Each call should include the problem statement, constraints, success criteria, and an explicit request for an independent approach proposal.
 4. Read every returned member response before synthesizing. Each response appears as a native subtask drilldown in opencode — expand them to inspect the full text.
 5. Produce a synthesis with these sections: Agreement, Key differences, Partial coverage, Unique insights, Blind spots, Open questions, Proposed design.
 6. Before presenting the proposed design, surface material open questions. Ask one question at a time. Prefer the opencode `question` tool when the choice set is discrete; use conversational prose only for genuinely open-ended questions.
