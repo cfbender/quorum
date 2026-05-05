@@ -1,4 +1,4 @@
-import type { Config, Hooks, Plugin } from "@opencode-ai/plugin"
+import type { Config, Hooks, Plugin, PluginInput } from "@opencode-ai/plugin"
 import { fileURLToPath } from "node:url"
 import * as fs from "node:fs"
 import * as path from "node:path"
@@ -88,7 +88,7 @@ export function createHooks(
   }
 }
 
-export const QuorumPlugin: Plugin = async () => {
+export const QuorumPlugin: Plugin = async ({ client: _client, directory: _directory }: PluginInput) => {
   const { config, issues } = loadConfig()
 
   if (issues.length > 0) {

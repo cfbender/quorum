@@ -219,7 +219,7 @@ ${issueLines}
     } : {}
   };
 }
-var QuorumPlugin = async () => {
+var QuorumPlugin = async ({ client: _client, directory: _directory }) => {
   const { config, issues } = loadConfig();
   if (issues.length > 0) {
     console.warn("[quorum] Config issues:\n" + issues.join("\n"));
