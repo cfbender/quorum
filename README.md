@@ -66,6 +66,7 @@ npm run verify
 ```
 
 The compiled plugin is written to `.opencode/plugins/quorum.js` and is checked into git so git-based installs do not need a build step.
+The package intentionally uses `npm run build:plugin` instead of a `build` script: npm prepares git dependencies when `scripts.build` exists, and OpenCode's plugin installer cannot complete that preparation path.
 
 ## Acknowledgments
 
@@ -73,4 +74,3 @@ Quorum draws inspiration from two prior works on multi-model orchestration:
 
 - [Superpowers](https://github.com/obra/superpowers) — skill-based agent augmentation patterns.
 - [OpenRouter Fusion](https://openrouter.ai/labs/fusion) — parallel multi-model synthesis.
-

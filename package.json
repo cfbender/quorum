@@ -10,10 +10,10 @@
     "README.md"
   ],
   "scripts": {
-    "build": "esbuild src/opencode-plugin.ts --bundle --platform=node --format=esm --target=node20 --outfile=.opencode/plugins/quorum.js --external:@opencode-ai/plugin --external:@opencode-ai/plugin/tool",
+    "build:plugin": "esbuild src/opencode-plugin.ts --bundle --platform=node --format=esm --target=node20 --outfile=.opencode/plugins/quorum.js --external:@opencode-ai/plugin --external:@opencode-ai/plugin/tool",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run test && npm run build"
+    "verify": "npm run typecheck && npm run test && npm run build:plugin"
   },
   "dependencies": {
     "@opencode-ai/plugin": "^1.2.27"
