@@ -1,6 +1,8 @@
 # quorum
 
-Quorum is an opencode plugin that enforces multi-model planning discipline. It registers each configured member as a named subagent via the opencode `config` hook, then injects a bootstrap prompt that instructs the orchestrator to dispatch parallel `task` calls to those members before any creative or planning work. Member responses appear as native subtask drilldowns. The orchestrator synthesizes agreement, differences, partial coverage, unique insights, blind spots, open questions, and a proposed design.
+Quorum is an opencode plugin that adds multi-model deliberation as a primitive. It registers each configured member as a named subagent via the opencode `config` hook, then injects a bootstrap prompt that instructs the orchestrator to dispatch parallel `task` calls to those members for planning-class work. Member responses appear as native subtask drilldowns. The orchestrator synthesizes agreement, differences, partial coverage, unique insights, blind spots, open questions, and a proposed design — then hands off.
+
+Quorum is intentionally narrow: fan out and synthesize. It does not write spec files, update high-level docs, or gate implementation. Those responsibilities belong to caller skills (for example `adaptive-planning`, `to-prd`, or `to-issues`) or to the main thread.
 
 ## Install
 
@@ -24,8 +26,7 @@ Create `~/.config/opencode/quorum.json`:
     { "name": "quorum-gpt5", "providerID": "openrouter", "modelID": "openai/gpt-5.4", "label": "gpt5" },
     { "name": "quorum-gemini", "providerID": "openrouter", "modelID": "google/gemini-3.1-pro-preview", "label": "gemini" }
   ],
-  "triggerMode": "auto",
-  "specDir": "docs/quorum/specs"
+  "triggerMode": "auto"
 }
 ```
 

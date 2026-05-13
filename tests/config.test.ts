@@ -9,7 +9,6 @@ describe("config", () => {
       { name: "quorum-gemini", providerID: "openrouter", modelID: "google/gemini-3.1-pro-preview", label: "gemini" },
     ])
     expect(DEFAULT_CONFIG.triggerMode).toBe("auto")
-    expect(DEFAULT_CONFIG.specDir).toBe("docs/quorum/specs")
   })
 
   it("parses a complete v0.2 config object", () => {
@@ -19,7 +18,6 @@ describe("config", () => {
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
       ],
       triggerMode: "manual",
-      specDir: "docs/custom/specs",
     })
 
     expect(config).toEqual({
@@ -28,7 +26,6 @@ describe("config", () => {
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
       ],
       triggerMode: "manual",
-      specDir: "docs/custom/specs",
     })
     expect(issues).toEqual([])
   })
@@ -40,7 +37,6 @@ describe("config", () => {
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
       ],
       triggerMode: "auto",
-      specDir: "docs/quorum/specs",
     })
     expect(issues).toEqual([])
   })
@@ -49,7 +45,6 @@ describe("config", () => {
     const { config, issues } = parseConfig({
       members: [{ name: "quorum-a", modelID: "x", label: "x" }],
       triggerMode: "always",
-      specDir: "",
     })
 
     expect(config).toEqual(DEFAULT_CONFIG)
@@ -86,7 +81,6 @@ describe("config", () => {
         { name: "quorum-glm-5.1", providerID: "openrouter", modelID: "z-ai/glm-5.1", label: "glm" },
       ],
       triggerMode: "auto",
-      specDir: "docs/quorum/specs",
     })
     expect(issues).toEqual([])
     expect(config.members[0]?.name).toBe("quorum-sonnet-4.6")
@@ -100,7 +94,6 @@ describe("config", () => {
         { name: "quorum_bar", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "bar" },
       ],
       triggerMode: "auto",
-      specDir: "docs/quorum/specs",
     })
     expect(issues).toEqual([])
     expect(config.members[0]?.name).toBe("quorum_foo")
@@ -118,7 +111,6 @@ describe("config", () => {
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
       ],
       triggerMode: "auto",
-      specDir: "docs/quorum/specs",
     })
     expect(config.members[0]?.reasoningEffort).toBe("medium")
     expect(config.members[1]?.reasoningEffort).toBeUndefined()
@@ -131,7 +123,6 @@ describe("config", () => {
         { name: "quorum-b", providerID: "openrouter", modelID: "anthropic/claude-sonnet-4.6", label: "sonnet" },
       ],
       triggerMode: "auto",
-      specDir: "docs/quorum/specs",
     })
     expect(config.members[0]?.name).toBe("quorum-a")
     expect(config.members[0]?.reasoningEffort).toBeUndefined()

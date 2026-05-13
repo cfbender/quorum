@@ -10,7 +10,6 @@ export const DEFAULT_CONFIG: QuorumConfig = {
     { name: "quorum-gemini", providerID: "openrouter", modelID: "google/gemini-3.1-pro-preview", label: "gemini" },
   ],
   triggerMode: "auto",
-  specDir: "docs/quorum/specs",
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -110,7 +109,6 @@ export function parseConfig(value: unknown): ConfigLoadResult {
   const config: QuorumConfig = {
     members: resolvedMembers,
     triggerMode: parseTriggerMode(value.triggerMode) ?? DEFAULT_CONFIG.triggerMode,
-    specDir: nonEmptyString(value.specDir) ?? DEFAULT_CONFIG.specDir,
   }
 
   return { config, issues }

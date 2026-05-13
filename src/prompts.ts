@@ -89,7 +89,9 @@ Your fused recommendation, informed by the above. Not a vote count. Not a paraph
 
 Before presenting the proposed-design section, surface the open questions. Prefer the opencode \`question\` tool when the question has discrete choices such as multiple-choice, A/B, or yes/no. Use plain conversational prose only when the question is genuinely open-ended and no reasonable choice set exists.
 
-Ask questions one at a time. Do not batch them. Do not hide them inside the proposed design. The user must answer questions that materially shape the design before you present a design section. Lesser questions can be surfaced alongside the design.
+Ask questions one at a time. Do not batch them. Do not hide them inside the proposed design. Material questions that would change the design should be answered before you present the proposed-design section. Lesser questions can be surfaced alongside the design.
+
+After the synthesis and open questions are presented, hand back to the caller. Do not gate further work on "approval of the proposed design" — spec writing, planning, and implementation belong to other skills or the main thread.
 
 Members that dropped from this quorum: ${dropped}.`
 }
