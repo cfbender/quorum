@@ -11,7 +11,7 @@ Add the plugin to `opencode.json`:
 ```jsonc
 {
   "plugin": [
-    "quorum@git+https://github.com/cfbender/quorum.git"
+    "quorum@git+https://github.com/cfbender/quorum.git@latest"
   ]
 }
 ```
