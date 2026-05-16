@@ -7,9 +7,9 @@
 -- ---------------------------------------------------------------------------
 
 local DEFAULT_MEMBERS = {
-  { name = "quorum-sonnet", providerID = "openrouter", modelID = "anthropic/claude-sonnet-4.6", label = "sonnet" },
-  { name = "quorum-gpt5",   providerID = "openrouter", modelID = "openai/gpt-5.4",               label = "gpt5"   },
-  { name = "quorum-gemini", providerID = "openrouter", modelID = "google/gemini-3.1-pro-preview", label = "gemini" },
+	{ name = "quorum_sonnet", providerID = "openrouter", modelID = "anthropic/claude-sonnet-4.6", label = "sonnet" },
+	{ name = "quorum_gpt5", providerID = "openrouter", modelID = "openai/gpt-5.4", label = "gpt5" },
+	{ name = "quorum_gemini", providerID = "openrouter", modelID = "google/gemini-3.1-pro-preview", label = "gemini" },
 }
 
 local DEFAULT_TRIGGER_MODE = "auto"
@@ -22,161 +22,191 @@ local DEFAULT_TRIGGER_MODE = "auto"
 
 -- Strip JSON-style comments (not valid JSON but defensive) and return the raw string
 local function strip_whitespace(s)
-  return s:match("^%s*(.-)%s*$")
+	return s:match("^%s*(.-)%s*$")
 end
 
 -- Extract a top-level string value: "key": "value"
 local function json_string(src, key)
-  local pattern = '"' .. key .. '"%s*:%s*"([^"]*)"'
-  return src:match(pattern)
+	local pattern = '"' .. key .. '"%s*:%s*"([^"]*)"'
+	return src:match(pattern)
 end
 
 -- Parse the members array from quorum.json.
--- Returns a list of {name, providerID, modelID, label} tables, or nil on failure.
+-- Returns a list of {name, providerID, modelID, label} tables, or nil plus a reason on failure.
 local function parse_members(src)
-  -- Find the members array bracket span
-  local arr_start = src:find('"members"%s*:%s*%[')
-  if not arr_start then return nil end
+	-- Find the members array bracket span
+	local arr_start = src:find('"members"%s*:%s*%[')
+	if not arr_start then
+		return nil
+	end
 
-  -- Walk forward to find matching ]
-  local depth = 0
-  local arr_end = nil
-  local inside = false
-  for i = arr_start, #src do
-    local ch = src:sub(i, i)
-    if ch == "[" then
-      depth = depth + 1
-      inside = true
-    elseif ch == "]" and inside then
-      depth = depth - 1
-      if depth == 0 then
-        arr_end = i
-        break
-      end
-    end
-  end
-  if not arr_end then return nil end
+	-- Walk forward to find matching ]
+	local depth = 0
+	local arr_end = nil
+	local inside = false
+	for i = arr_start, #src do
+		local ch = src:sub(i, i)
+		if ch == "[" then
+			depth = depth + 1
+			inside = true
+		elseif ch == "]" and inside then
+			depth = depth - 1
+			if depth == 0 then
+				arr_end = i
+				break
+			end
+		end
+	end
+	if not arr_end then
+		return nil
+	end
 
-  local arr_src = src:sub(arr_start, arr_end)
+	local arr_src = src:sub(arr_start, arr_end)
 
-  -- Extract each { … } object from the array
-  local members = {}
-  local pos = 1
-  while true do
-    local obj_s = arr_src:find("{", pos)
-    if not obj_s then break end
+	-- Extract each { … } object from the array
+	local members = {}
+	local pos = 1
+	while true do
+		local obj_s = arr_src:find("{", pos)
+		if not obj_s then
+			break
+		end
 
-    -- Find matching }
-    local obj_depth = 0
-    local obj_e = nil
-    for i = obj_s, #arr_src do
-      local ch = arr_src:sub(i, i)
-      if ch == "{" then
-        obj_depth = obj_depth + 1
-      elseif ch == "}" then
-        obj_depth = obj_depth - 1
-        if obj_depth == 0 then
-          obj_e = i
-          break
-        end
-      end
-    end
-    if not obj_e then break end
+		-- Find matching }
+		local obj_depth = 0
+		local obj_e = nil
+		for i = obj_s, #arr_src do
+			local ch = arr_src:sub(i, i)
+			if ch == "{" then
+				obj_depth = obj_depth + 1
+			elseif ch == "}" then
+				obj_depth = obj_depth - 1
+				if obj_depth == 0 then
+					obj_e = i
+					break
+				end
+			end
+		end
+		if not obj_e then
+			break
+		end
 
-    local obj = arr_src:sub(obj_s, obj_e)
-    local name       = json_string(obj, "name")
-    local providerID = json_string(obj, "providerID")
-    local modelID    = json_string(obj, "modelID")
-    local label      = json_string(obj, "label")
+		local obj = arr_src:sub(obj_s, obj_e)
+		local name = json_string(obj, "name")
+		local providerID = json_string(obj, "providerID")
+		local modelID = json_string(obj, "modelID")
+		local label = json_string(obj, "label")
 
-    if name and providerID and modelID and label
-       and #name > 0 and #providerID > 0 and #modelID > 0 and #label > 0 then
-      members[#members + 1] = {
-        name       = name,
-        providerID = providerID,
-        modelID    = modelID,
-        label      = label,
-      }
-    end
+		if
+			name
+			and providerID
+			and modelID
+			and label
+			and #name > 0
+			and #providerID > 0
+			and #modelID > 0
+			and #label > 0
+		then
+			members[#members + 1] = {
+				name = name,
+				providerID = providerID,
+				modelID = modelID,
+				label = label,
+			}
+		end
 
-    pos = obj_e + 1
-  end
+		pos = obj_e + 1
+	end
 
-  if #members < 2 then return nil end
+	if #members < 2 then
+		return nil, "has fewer than 2 valid entries"
+	end
 
-  -- Uniqueness check on name
-  local seen = {}
-  for _, m in ipairs(members) do
-    if seen[m.name] then return nil end
-    seen[m.name] = true
-  end
+	-- Uniqueness check on name
+	local seen = {}
+	for _, m in ipairs(members) do
+		if seen[m.name] then
+			return nil, 'has duplicate member name "' .. m.name .. '"'
+		end
+		seen[m.name] = true
+	end
 
-  return members
+	return members
 end
 
 -- Parse triggerMode from quorum.json source
 local function parse_trigger_mode(src)
-  local v = json_string(src, "triggerMode")
-  if v == "auto" or v == "manual" or v == "off" then
-    return v
-  end
-  return nil
+	local v = json_string(src, "triggerMode")
+	if v == "auto" or v == "manual" or v == "off" then
+		return v
+	end
+	return nil
 end
 
 -- ---------------------------------------------------------------------------
--- Load config from ~/.config/hygge/quorum.json via hygge.exec
+-- Load config from ~/.config/hygge/quorum.json directly
 -- Falls back to defaults on any error.
 -- ---------------------------------------------------------------------------
 
+local function read_file(path)
+	local file = io.open(path, "r")
+	if not file then
+		return nil
+	end
+
+	local contents = file:read("*a")
+	file:close()
+	return contents
+end
+
 local function load_config()
-  local config = {
-    members     = DEFAULT_MEMBERS,
-    triggerMode = DEFAULT_TRIGGER_MODE,
-    issues      = {},
-  }
+	local config = {
+		members = DEFAULT_MEMBERS,
+		triggerMode = DEFAULT_TRIGGER_MODE,
+		issues = {},
+	}
 
-  -- Build path using $HOME
-  local home = os.getenv("HOME") or "/tmp"
-  local config_path = home .. "/.config/hygge/quorum.json"
+	-- Build path using $HOME
+	local home = os.getenv("HOME") or "/tmp"
+	local config_path = home .. "/.config/hygge/quorum.json"
 
-  -- Read file via hygge.exec (requires shell permission)
-  local ok, result = pcall(function()
-    return hygge.exec("cat", { config_path }, {})
-  end)
+	-- Read file directly instead of shelling out.
+	local ok, src = pcall(function()
+		return read_file(config_path)
+	end)
 
-  if not ok or not result or result.exit_code ~= 0 then
-    -- File absent or unreadable — use defaults silently (same as OpenCode port)
-    return config
-  end
+	if not ok or not src then
+		-- File absent or unreadable — use defaults silently (same as OpenCode port)
+		return config
+	end
 
-  local src = result.stdout or ""
-  if strip_whitespace(src) == "" then
-    return config
-  end
+	if strip_whitespace(src) == "" then
+		return config
+	end
 
-  local members = parse_members(src)
-  if members then
-    config.members = members
-  else
-    local had_members = src:find('"members"')
-    if had_members then
-      config.issues[#config.issues + 1] =
-        "quorum.json members array is invalid or has fewer than 2 valid entries; using defaults"
-    end
-  end
+	local members, members_issue = parse_members(src)
+	if members then
+		config.members = members
+	else
+		local had_members = src:find('"members"')
+		if had_members then
+			config.issues[#config.issues + 1] =
+				"quorum.json members array is invalid (" .. (members_issue or "could not parse members") .. "); using defaults"
+		end
+	end
 
-  local trigger = parse_trigger_mode(src)
-  if trigger then
-    config.triggerMode = trigger
-  else
-    local had_trigger = src:find('"triggerMode"')
-    if had_trigger then
-      config.issues[#config.issues + 1] =
-        'quorum.json triggerMode is invalid; expected "auto", "manual", or "off"; using default "auto"'
-    end
-  end
+	local trigger = parse_trigger_mode(src)
+	if trigger then
+		config.triggerMode = trigger
+	else
+		local had_trigger = src:find('"triggerMode"')
+		if had_trigger then
+			config.issues[#config.issues + 1] =
+				'quorum.json triggerMode is invalid; expected "auto", "manual", or "off"; using default "auto"'
+		end
+	end
 
-  return config
+	return config
 end
 
 -- ---------------------------------------------------------------------------
@@ -200,15 +230,17 @@ Requirements:
 -- ---------------------------------------------------------------------------
 
 local function render_bootstrap(config)
-  if config.triggerMode ~= "auto" then return nil end
+	if config.triggerMode ~= "auto" then
+		return nil
+	end
 
-  local names = {}
-  for _, m in ipairs(config.members) do
-    names[#names + 1] = m.name
-  end
-  local member_list = table.concat(names, ", ")
+	local names = {}
+	for _, m in ipairs(config.members) do
+		names[#names + 1] = m.name
+	end
+	local member_list = table.concat(names, ", ")
 
-  return [[<quorum-bootstrap>
+	return [[<quorum-bootstrap>
 You have quorum planning members available as subagents: ]] .. member_list .. [[.
 
 Trigger gate — run before dispatching any implementation subagent or writing code beyond a trivial edit. Answer each question:
@@ -237,48 +269,48 @@ local config = load_config()
 
 -- Report config issues (best-effort; hygge does not have a structured log API)
 if #config.issues > 0 then
-  for _, issue in ipairs(config.issues) do
-    io.stderr:write("[quorum] Config issue: " .. issue .. "\n")
-  end
+	for _, issue in ipairs(config.issues) do
+		io.stderr:write("[quorum] Config issue: " .. issue .. "\n")
+	end
 end
 
 local register_agents = config.triggerMode ~= "off"
 
 -- Register each member as a Hygge subagent when not in "off" mode
 if register_agents then
-  for _, member in ipairs(config.members) do
-    hygge.register_subagent({
-      name          = member.name,
-      description   = "Quorum planning member (" .. member.label .. ")",
-      system_prompt = MEMBER_SYSTEM_PROMPT,
-    })
-  end
+	for _, member in ipairs(config.members) do
+		hygge.register_subagent({
+			name = member.name,
+			description = "Quorum planning member (" .. member.label .. ")",
+			system_prompt = MEMBER_SYSTEM_PROMPT,
+		})
+	end
 end
 
 -- Inject bootstrap guidance via pre_message hook when triggerMode == "auto"
 local bootstrap = render_bootstrap(config)
 
 if bootstrap ~= nil then
-  -- Build issues prefix for injection (analogous to <quorum-config-issues> in OpenCode)
-  local issues_block = ""
-  if #config.issues > 0 then
-    local lines = {}
-    for _, issue in ipairs(config.issues) do
-      lines[#lines + 1] = "- " .. issue
-    end
-    issues_block = "<quorum-config-issues>\n"
-      .. "The following issues were detected in quorum.json. Fix your config and reload the plugin:\n"
-      .. table.concat(lines, "\n")
-      .. "\n</quorum-config-issues>\n\n"
-  end
+	-- Build issues prefix for injection (analogous to <quorum-config-issues> in OpenCode)
+	local issues_block = ""
+	if #config.issues > 0 then
+		local lines = {}
+		for _, issue in ipairs(config.issues) do
+			lines[#lines + 1] = "- " .. issue
+		end
+		issues_block = "<quorum-config-issues>\n"
+			.. "The following issues were detected in quorum.json. Fix your config and reload the plugin:\n"
+			.. table.concat(lines, "\n")
+			.. "\n</quorum-config-issues>\n\n"
+	end
 
-  local injection = issues_block .. bootstrap
+	local injection = issues_block .. bootstrap
 
-  hygge.register_hook("pre_message", function(message)
-    -- Prepend quorum guidance to the user message so the agent sees it each turn.
-    local modified = injection .. "\n\n" .. (message or "")
-    return { decision = "allow", modified_message = modified }
-  end)
+	hygge.register_hook("pre_message", function(message)
+		-- Prepend quorum guidance to the user message so the agent sees it each turn.
+		local modified = injection .. "\n\n" .. (message or "")
+		return { decision = "allow", modified_message = modified }
+	end)
 end
 
 -- ---------------------------------------------------------------------------
@@ -286,34 +318,32 @@ end
 -- ---------------------------------------------------------------------------
 
 hygge.register_command({
-  name        = "quorum-status",
-  description = "Show the current quorum configuration: members, trigger mode, and any config issues.",
-  execute     = function(_args)
-    local lines = {}
+	name = "quorum-status",
+	description = "Show the current quorum configuration: members, trigger mode, and any config issues.",
+	execute = function(_args)
+		local lines = {}
 
-    lines[#lines + 1] = "## Quorum status"
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = "**Trigger mode:** " .. config.triggerMode
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = "**Members (" .. #config.members .. "):**"
-    for i, m in ipairs(config.members) do
-      lines[#lines + 1] = string.format(
-        "  %d. `%s` — %s/%s (label: %s)",
-        i, m.name, m.providerID, m.modelID, m.label
-      )
-    end
+		lines[#lines + 1] = "## Quorum status"
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = "**Trigger mode:** " .. config.triggerMode
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = "**Members (" .. #config.members .. "):**"
+		for i, m in ipairs(config.members) do
+			lines[#lines + 1] =
+				string.format("  %d. `%s` — %s/%s (label: %s)", i, m.name, m.providerID, m.modelID, m.label)
+		end
 
-    if #config.issues > 0 then
-      lines[#lines + 1] = ""
-      lines[#lines + 1] = "**Config issues:**"
-      for _, issue in ipairs(config.issues) do
-        lines[#lines + 1] = "  - " .. issue
-      end
-    end
+		if #config.issues > 0 then
+			lines[#lines + 1] = ""
+			lines[#lines + 1] = "**Config issues:**"
+			for _, issue in ipairs(config.issues) do
+				lines[#lines + 1] = "  - " .. issue
+			end
+		end
 
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = "_Config file: ~/.config/hygge/quorum.json_"
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = "_Config file: ~/.config/hygge/quorum.json_"
 
-    return table.concat(lines, "\n")
-  end,
+		return table.concat(lines, "\n")
+	end,
 })
