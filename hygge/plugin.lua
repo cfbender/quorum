@@ -306,10 +306,9 @@ if bootstrap ~= nil then
 
 	local injection = issues_block .. bootstrap
 
-	hygge.register_hook("pre_message", function(message)
-		-- Prepend quorum guidance to the user message so the agent sees it each turn.
-		local modified = injection .. "\n\n" .. (message or "")
-		return { decision = "allow", modified_message = modified }
+	hygge.register_hook("pre_message", { name = "quorum_bootstrap", timeout = "10s" }, function(_event)
+		-- Append quorum guidance as non-rendered one-turn system context.
+		return { decision = "allow", system_prompt_append = injection }
 	end)
 end
 
