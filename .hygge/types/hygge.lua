@@ -7,8 +7,17 @@
 
 ---@class Hygge
 ---@field config table<string, any> Plugin-specific `[plugins.<name>]` config from `config.toml`.
+---@field plugin HyggePlugin Current plugin metadata.
+---@field profile HyggeProfile Active profile metadata.
 ---@field session HyggeSession Current session metadata. Empty during plugin initialisation.
 hygge = {}
+
+---@class HyggePlugin
+---@field dir string Absolute directory containing this plugin's entrypoint.
+---@field path string Absolute path to this plugin's entrypoint file.
+
+---@class HyggeProfile
+---@field dir string Absolute active profile directory. Empty when no profile directory is active.
 
 ---@class HyggeSession
 ---@field id string Current session ID when available.
@@ -44,6 +53,7 @@ function hygge.register_tool(spec) end
 ---@alias HyggeHookDecision
 ---| 'allow'
 ---| 'deny'
+---| 'modify'
 
 ---@class HyggeHookOptions
 ---@field name? string Explicit hook name. Defaults to `plugin:<plugin>:<event>`.
@@ -57,6 +67,7 @@ function hygge.register_tool(spec) end
 ---@field pwd string
 ---@field tool_name string
 ---@field message string
+---@field mode_name string Active mode name when the hook was invoked by a mode switch refresh.
 ---@field tool_input? table
 
 ---@class HyggeHookAction
@@ -64,6 +75,7 @@ function hygge.register_tool(spec) end
 ---@field reason? string Human-readable reason for deny/allow decisions.
 ---@field modified_tool_input? table Replacement tool input for pre-tool hooks.
 ---@field modified_message? string Replacement message for pre-message hooks.
+---@field system_prompt_append? string One-turn system prompt addition for pre-message hooks. Not rendered as user text.
 
 ---Register a hook for a tool/message event.
 ---@overload fun(event: HyggeHookEvent, handler: fun(event: HyggeHookInput): HyggeHookAction|nil)

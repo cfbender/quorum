@@ -1,6 +1,6 @@
 -- quorum Hygge plugin
 -- Registers quorum planning members as subagents and injects bootstrap guidance.
--- Config: ~/.config/hygge/quorum.json  (same schema as the OpenCode port)
+-- Config: <active Hygge profile dir>/quorum.json  (same schema as the OpenCode port)
 
 -- ---------------------------------------------------------------------------
 -- Defaults (mirrors src/config.ts DEFAULT_CONFIG)
@@ -144,7 +144,7 @@ local function parse_trigger_mode(src)
 end
 
 -- ---------------------------------------------------------------------------
--- Load config from ~/.config/hygge/quorum.json directly
+-- Load config from the active Hygge profile directory.
 -- Falls back to defaults on any error.
 -- ---------------------------------------------------------------------------
 
@@ -159,16 +159,22 @@ local function read_file(path)
 	return contents
 end
 
-local function load_config()
+local function resolve_config_path()
+	local profile_dir = hygge.profile and hygge.profile.dir
+	if profile_dir and #profile_dir > 0 then
+		return profile_dir .. "/quorum.json"
+	end
+
+	local home = os.getenv("HOME") or "/tmp"
+	return home .. "/.config/hygge/quorum.json"
+end
+
+local function load_config(config_path)
 	local config = {
 		members = DEFAULT_MEMBERS,
 		triggerMode = DEFAULT_TRIGGER_MODE,
 		issues = {},
 	}
-
-	-- Build path using $HOME
-	local home = os.getenv("HOME") or "/tmp"
-	local config_path = home .. "/.config/hygge/quorum.json"
 
 	-- Read file directly instead of shelling out.
 	local ok, src = pcall(function()
@@ -190,8 +196,9 @@ local function load_config()
 	else
 		local had_members = src:find('"members"')
 		if had_members then
-			config.issues[#config.issues + 1] =
-				"quorum.json members array is invalid (" .. (members_issue or "could not parse members") .. "); using defaults"
+			config.issues[#config.issues + 1] = "quorum.json members array is invalid ("
+				.. (members_issue or "could not parse members")
+				.. "); using defaults"
 		end
 	end
 
@@ -265,7 +272,8 @@ end
 -- Main plugin setup
 -- ---------------------------------------------------------------------------
 
-local config = load_config()
+local config_path = resolve_config_path()
+local config = load_config(config_path)
 
 -- Report config issues (best-effort; hygge does not have a structured log API)
 if #config.issues > 0 then
@@ -341,7 +349,7 @@ hygge.register_command({
 		end
 
 		lines[#lines + 1] = ""
-		lines[#lines + 1] = "_Config file: ~/.config/hygge/quorum.json_"
+		lines[#lines + 1] = "_Config file: " .. config_path .. "_"
 
 		return table.concat(lines, "\n")
 	end,
