@@ -228,7 +228,6 @@ Requirements:
 - Address architecture, components, data flow, and tradeoffs.
 - Surface assumptions and open questions that could change the design.
 - Keep the response focused and concrete.
-- Do not call tools.
 - Do not write files.
 - Do not claim consensus; provide your independent perspective.]]
 
@@ -292,6 +291,7 @@ if register_agents then
 			description = "Quorum planning member (" .. member.label .. ")",
 			model = member.providerID .. "/" .. member.modelID,
 			system_prompt = MEMBER_SYSTEM_PROMPT,
+			tools = { "read", "bash", "grep", "glob" },
 		})
 	end
 end

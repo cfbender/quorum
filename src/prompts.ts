@@ -1,4 +1,4 @@
-import type { QuorumResponse, ReasoningEffort } from "./types.js"
+import type { QuorumResponse, ReasoningEffort } from "./types.js";
 
 export const MEMBER_SYSTEM_PROMPT = `You are one member of a quorum of planning consultants.
 
@@ -8,20 +8,19 @@ Requirements:
 - Address architecture, components, data flow, and tradeoffs.
 - Surface assumptions and open questions that could change the design.
 - Keep the response focused and concrete.
-- Do not call tools.
 - Do not write files.
-- Do not claim consensus; provide your independent perspective.`
+- Do not claim consensus; provide your independent perspective.`;
 
 export function renderMemberPrompt(input: {
-  topic: string
-  prompt: string
-  context?: string
-  reasoningEffort: ReasoningEffort
-  maxTokens: number
+  topic: string;
+  prompt: string;
+  context?: string;
+  reasoningEffort: ReasoningEffort;
+  maxTokens: number;
 }): string {
   const contextBlock = input.context?.trim()
     ? `\n\n**Additional context:**\n${input.context.trim()}`
-    : ""
+    : "";
 
   return `You are one member of a quorum of models being consulted on a planning question. Your response will be synthesized alongside responses from other models.
 
@@ -39,22 +38,25 @@ ${input.prompt}${contextBlock}
 - Use ${input.reasoningEffort} reasoning effort.
 - Keep response focused. Do not pad. Aim for 400–800 words unless the topic genuinely needs more.
 - The tool will locally cap the returned text at approximately ${input.maxTokens} tokens before giving it back to the orchestrator.
-- Do not try to coordinate with other members. You cannot see their responses.`
+- Do not try to coordinate with other members. You cannot see their responses.`;
 }
 
 export function renderSynthesisPrompt(input: {
-  topic: string
-  responses: QuorumResponse[]
-  droppedModels: string[]
+  topic: string;
+  responses: QuorumResponse[];
+  droppedModels: string[];
 }): string {
-  const responseBlocks = input.responses.map((response) => {
-    const body = response.ok
-      ? response.text ?? ""
-      : `[This model did not respond: ${response.error ?? "unknown error"}]`
-    return `---\n## ${response.label} (${response.providerID}/${response.modelID})\n${body}\n---`
-  }).join("\n\n")
+  const responseBlocks = input.responses
+    .map((response) => {
+      const body = response.ok
+        ? (response.text ?? "")
+        : `[This model did not respond: ${response.error ?? "unknown error"}]`;
+      return `---\n## ${response.label} (${response.providerID}/${response.modelID})\n${body}\n---`;
+    })
+    .join("\n\n");
 
-  const dropped = input.droppedModels.length > 0 ? input.droppedModels.join(", ") : "none"
+  const dropped =
+    input.droppedModels.length > 0 ? input.droppedModels.join(", ") : "none";
 
   return `You have received responses from ${input.responses.length} members of the quorum on the topic: "${input.topic}".
 
@@ -93,5 +95,5 @@ Ask questions one at a time. Do not batch them. Do not hide them inside the prop
 
 After the synthesis and open questions are presented, hand back to the caller. Do not gate further work on "approval of the proposed design" — spec writing, planning, and implementation belong to other skills or the main thread.
 
-Members that dropped from this quorum: ${dropped}.`
+Members that dropped from this quorum: ${dropped}.`;
 }
