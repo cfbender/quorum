@@ -290,6 +290,7 @@ if register_agents then
 		hygge.register_subagent({
 			name = member.name,
 			description = "Quorum planning member (" .. member.label .. ")",
+			model = member.providerID .. "/" .. member.modelID,
 			system_prompt = MEMBER_SYSTEM_PROMPT,
 		})
 	end
